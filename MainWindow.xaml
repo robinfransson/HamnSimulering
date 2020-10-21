@@ -1,0 +1,55 @@
+﻿<Window x:Class="HamnSimulering.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:HamnSimulering"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="800" Width="800" ResizeMode="NoResize">
+    <Canvas HorizontalAlignment="Center" Height="790" VerticalAlignment="Top" Width="800">
+        <Button x:Name="manualContinue" Content="Nästa dag" Height="45" Canvas.Top="612" Width="114" Canvas.Left="10" Click="manualContinue_Click"/>
+        <Button x:Name="toggleAuto" Content="Auto" Height="44" Canvas.Left="10" Canvas.Top="679" Width="114" Click="toggleAuto_Click"/>
+        <Label x:Name="boatsInHarbourOne" Content="Antar båtar i hamnen:" Height="29" Canvas.Left="134" Canvas.Top="483" Width="137" HorizontalContentAlignment="Center"/>
+        <Label x:Name="boatsInHarbourTwo" Content="Antar båtar i hamnen:" Height="29" Canvas.Left="512" Canvas.Top="483" Width="166" HorizontalContentAlignment="Center" />
+        <Label x:Name="boatsWaiting" Content="Väntande båtar" Height="29" Canvas.Left="332" Canvas.Top="578" Width="136"/>
+        <DataGrid x:Name="leftHarbourGrid" Height="468" Canvas.Left="10" Canvas.Top="10" Width="390" AutoGenerateColumns="False">
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="Plats" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Båttyp" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Nr" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Vikt" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Maxhast" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Övrigt" Binding="{Binding SpecialProperty}" />
+
+
+            </DataGrid.Columns>
+        </DataGrid>
+        <DataGrid x:Name="waitingBoatsGrid" Height="196" Canvas.Left="205" Canvas.Top="550" Width="390"  AutoGenerateColumns="False" FrozenColumnCount="32">
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="Plats" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Båttyp" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Nr" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Vikt" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Maxhast" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Övrigt" Binding="{Binding SpecialProperty}" />
+
+
+            </DataGrid.Columns>
+        </DataGrid>
+        <DataGrid x:Name="rightHarbourGrid" Height="468" Canvas.Left="400" Canvas.Top="10" Width="390" AutoGenerateColumns="False">
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="Plats" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Båttyp" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Nr" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Vikt" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Maxhast" Binding="{Binding Name}" />
+                <DataGridTextColumn Header="Övrigt" Binding="{Binding SpecialProperty}" />
+
+
+            </DataGrid.Columns>
+        </DataGrid>
+    </Canvas>
+</Window>
