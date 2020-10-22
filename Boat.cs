@@ -10,6 +10,8 @@ namespace HamnSimulering
     {
         public string SpecialProperty { get; set; }
         public int[] OccupiedSpots { get; set; }
+
+        public Func<string> Spots => () => this is Sailboat ? $"{OccupiedSpots[0] + 1}" : $"{OccupiedSpots[0] + 1},{OccupiedSpots[1] + 1}";
         public float SizeInSpots { get; set; }
         public string ModelID { get; set; }
         public int DaysSpentAtHarbour { get; set; }
@@ -26,31 +28,20 @@ namespace HamnSimulering
             TopSpeedKnots = topSpeedKnots;
         }
 
-        public override string ToString()
+
+        public void AssignSpot(string spot)
         {
-            Boat boat = this;
-            string info = $"Modell: {boat.ModelID} Vikt: {boat.Weight} Topphastighet: Knop:{boat.TopSpeedKnots} KMH: {boat.TopSpeedKMH} Dagar vid hamnen: {boat.DaysSpentAtHarbour} ";
-            if(boat is Rowboat rowboat)
+            if(spot.Length == 1)
             {
-                info += $"Platser: {rowboat.MaxCapacity}";
-            }
-            else if (boat is Cargoship cargoship)
-            {
-                info += $"Last: {cargoship.CurrentCargo}";
-            }
-            else if (boat is Motorboat motorboat)
-            {
-                info += $"HK: {motorboat.Horsepowers}";
-            }
-            else if (boat is Sailboat sailboat)
-            {
-                info += $"HK: {sailboat.BoatLength}";
+                OccupiedSpots = new int[1] { Int32.Parse(spot) };
             }
             else
             {
-                info += $"Sängar: {((Catamaran)boat).NumberOfBeds}";
+                string[] spots = spot.Split(",");
+                int start = Int32.Parse(spots[0]);
+                int end = Int32.Parse(spots[1]);
+                OccupiedSpots = new int[2] { start, end };
             }
-            return info;
         }
     }
 

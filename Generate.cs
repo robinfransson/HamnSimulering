@@ -17,15 +17,7 @@ namespace HamnSimulering
             CATAMARAN
         }
 
-        public static void PopulateWater(int visitors)
-        {
-            List<Boat> boats = new List<Boat>();
-            for(int i = 0; i < visitors; i++)
-            {
-                AddBoatToWaiting();
-            }
-        }
-        static Boat RandomBoat()
+        public static Boat RandomBoat()
         {
             int topSpeedKnots;
             int weight;
@@ -72,11 +64,7 @@ namespace HamnSimulering
                     return new Catamaran(ID, weight, topSpeedKnots, specialProperty);
             }
         }
-        static void AddBoatToWaiting()
-        {
-            Boat boat = RandomBoat();
-            Water.AddBoat(boat);
-        }
+
         static string GenerateName(string prefix)
         {
             char[] allowedLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();

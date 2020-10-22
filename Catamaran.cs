@@ -12,7 +12,7 @@ namespace HamnSimulering
             NumberOfBeds = beds;
             SpecialProperty = $"{NumberOfBeds} sängar";
             SizeInSpots = 3;
-            MaxDaysAtHarbour = 5;
+            MaxDaysAtHarbour = 3;
         }
     }
 }
