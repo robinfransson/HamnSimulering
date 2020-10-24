@@ -7,7 +7,7 @@ namespace HamnSimulering
     class Sailboat : Boat
     {
         public int BoatLength { get; set; }
-        public Sailboat(string id, int weight, int topSpeedInKnots, int length, int daysSpent = 0) : base(id, weight, topSpeedInKnots, daysSpent)
+        public Sailboat(string id, int weight, int topSpeedInKnots, int length, int daysSpent = 0, int[] spots = null) : base(id, weight, topSpeedInKnots, daysSpent, spots)
         {
             BoatLength = length;
             SpecialProperty = $"{BoatLength} meter lång";

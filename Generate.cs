@@ -35,9 +35,9 @@ namespace HamnSimulering
                     specialProperty = rand.Next(10, 1000 + 1); //hästkrafter i det här fallet
                     return new Motorboat(ID, weight, topSpeedKnots, specialProperty);
                 case "ROWBOAT":
-                    prefix = "M-";
+                    prefix = "R-";
                     ID = GenerateName(prefix);
-                    topSpeedKnots = rand.Next(3); //upp till 3 knop
+                    topSpeedKnots = rand.Next(1,3+1); //upp till 3 knop
                     weight = rand.Next(100, 300 + 1); // exclusive max därav +1
                     specialProperty = rand.Next(1, 6 + 1); //antal passagerare i det här fallet
                     return new Rowboat(ID, weight, topSpeedKnots, specialProperty);

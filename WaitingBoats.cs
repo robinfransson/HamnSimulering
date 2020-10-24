@@ -9,7 +9,7 @@ namespace HamnSimulering
         public List<Boat> Waiting = new List<Boat>();
 
 
-        public void AddBoatToWaiting(int numberOfBoats)
+        public void AddBoats(int numberOfBoats)
         {
             Func<Boat> generateBoat = new Func<Boat>(() => Generate.RandomBoat());
             for (int i = 1; i <= numberOfBoats; i++)

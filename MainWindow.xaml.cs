@@ -1,19 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
-using System.Data;
 
 namespace HamnSimulering
 {
@@ -24,36 +16,97 @@ namespace HamnSimulering
     {
 
 
+
         bool automatic = false;
-        Harbour leftHarbour = new Harbour(true); // vänstra hamnen ska föredra segelbåtar
+        Harbour leftHarbour = new Harbour();
         Harbour rightHarbour = new Harbour();
         WaitingBoats boatsAtSea = new WaitingBoats();
-        int daysPassed = 0;
-        int boatsRejected = 0;
+        int daysPassed;
+        int boatsRejected;
         DispatcherTimer dispatcherTimer;
         int numberOfNewBoats = 5;
+        int timerSeconds = 5;
 
 
 
 
         public MainWindow()
         {
-            LoadSaveFiles();
             InitializeComponent();
+
+
             SetupAutomatic();
-            BoatData.Init();
-            leftHarbourGrid.ItemsSource = BoatData.Info("LeftHarbour").DefaultView;
-            rightHarbourGrid.ItemsSource = BoatData.Info("RightHarbour").DefaultView;
+            BoatData.SetupDataTables();
+
+            leftHarbourGrid.ItemsSource = BoatData.BoatDataViewer("LeftHarbour");
+            rightHarbourGrid.ItemsSource = BoatData.BoatDataViewer("RightHarbour");
             waitingBoatsGrid.ItemsSource = BoatData.Info("WaitingBoats").DefaultView;
+
+
+            leftHarbourGrid.IsReadOnly = true;
+            rightHarbourGrid.IsReadOnly = true;
+            waitingBoatsGrid.IsReadOnly = true;
+
+
+            LoadSaveFiles();
+            UpdateDataTables();
+            ListEmptySpots();
+            UpdateLabels();
+            leftHarbour.UpdateLargestSpot();
+            rightHarbour.UpdateLargestSpot();
         }
 
+
+        void UpdateLabels()
+        {
+            waitingBoatsLabel.Content = "Väntande båtar: " + boatsAtSea.Waiting.Count();
+            numberOfDaysLabel.Content = "Passerade dagar: " + daysPassed;
+            rejectedBoatsLabel.Content = "Avvisade båtar: " + boatsRejected;
+
+            leftHarbourLabel.Content = "Antal båtar i hamnen: " + leftHarbour.Port.Count();
+            rightHarbourLabel.Content = "Antal båtar i hamnen: " + rightHarbour.Port.Count();
+
+            leftHarbourSpotsLeftLabel.Content = "Lediga platser: " + leftHarbour.SpotsLeft;
+            rightHarbourSpotsLeftLabel.Content = "Lediga platser: " + rightHarbour.SpotsLeft;
+        }
         void LoadSaveFiles()
         {
-            leftHarbour.Port = SaveFileManager.Load("left.txt");
-            rightHarbour.Port = SaveFileManager.Load("right.txt");
-            boatsAtSea.Waiting = SaveFileManager.Load("waiting.txt");
+            try
+            {
+                leftHarbour.Port = SaveFileManager.Load("left.txt");
+                rightHarbour.Port = SaveFileManager.Load("right.txt");
+                boatsAtSea.Waiting = SaveFileManager.Load("waiting.txt");
+
+                if (leftHarbour.Port.Any())
+                {
+                    foreach (Boat boat in leftHarbour.Port)
+                    {
+                        leftHarbour.UpdateSpots(boat);
+                    }
+                }
+                if (rightHarbour.Port.Any())
+                {
+
+                    foreach (Boat boat in rightHarbour.Port)
+                    {
+                        rightHarbour.UpdateSpots(boat);
+                    }
+                }
+                if (!boatsAtSea.Waiting.Any())
+                {
+                    boatsAtSea.AddBoats(numberOfNewBoats);
+                }
+
+                BoatData.UpdateVisitors(boatsAtSea.Waiting);
+
+                SaveFileManager.LoadStatistics("stats.txt", out daysPassed, out boatsRejected);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+            }
         }
-       
+
 
         private void toggleAuto_Click(object sender, RoutedEventArgs e)
         {
@@ -68,67 +121,106 @@ namespace HamnSimulering
             dispatcherTimer = new DispatcherTimer();
             dispatcherTimer.Tick += (sender, eventArgs) =>
             {
-                    SimulateTimePassed();
+                SimulateTimePassed();
             };
             dispatcherTimer.Interval = new TimeSpan(0, 0, 5); // var 5:e sekund ska lambda expression utföras
         }
 
 
+
         private void SimulateTimePassed()
         {
-            SimulateOneDay();
             TryToDock();
+            boatsAtSea.AddBoats(numberOfNewBoats);
+
+            BoatData.UpdateVisitors(boatsAtSea.Waiting);
+
+            AddOneDay();
             UpdateDataTables();
-            daysPassed++;
+            UpdateLabels();
+            ListEmptySpots();
+
+
+            leftHarbour.UpdateLargestSpot();
+            rightHarbour.UpdateLargestSpot();
+
         }
 
-        private void UpdateDataTables()
+        private void ListEmptySpots()
         {
-            DataTable leftHarbourData = BoatData.Info("LeftHarbour");
-            DataTable rightHarbourData = BoatData.Info("RightHarbour");
-            DataTable waitingBoats = BoatData.Info("WaitingBoats");
-            foreach (Boat boat in leftHarbour.Port)
+            BoatData.ListFreeSpots(leftHarbour.SpotsInUse, BoatData.Info("LeftHarbour"));
+            BoatData.ListFreeSpots(rightHarbour.SpotsInUse, BoatData.Info("RightHarbour"));
+        }
+
+        private void UpdateDataTables(bool clear=false)
+        {
+            if (clear)
             {
-                DataRow[] boatData = leftHarbourData.Select($"Nr = '{boat.ModelID}");
-                if (boatData[0] == null)
-                {
-                    BoatData.UpdateTable()
-                }
+
+            }
+            else
+            {
+
+                BoatData.UpdateHarbour(BoatData.Info("LeftHarbour"), leftHarbour.Port);
+                BoatData.UpdateHarbour(BoatData.Info("RightHarbour"), rightHarbour.Port);
+                BoatData.UpdateVisitors(boatsAtSea.Waiting);
             }
         }
 
-        private void SimulateOneDay()
+        private void AddOneDay()
         {
-            if(leftHarbour.Port.Any())
+            List<Boat> toRemove;
+
+
+            //först vänstra hamnen
+            toRemove = leftHarbour.Port.Where(boat => boat.DaysSpentAtHarbour == boat.MaxDaysAtHarbour).ToList();
+            foreach (Boat boat in toRemove)
             {
-                foreach(Boat boat in leftHarbour.Port)
-                {
-                    boat.DaysSpentAtHarbour++;
-                }
+                leftHarbour.Remove(boat);
+                BoatData.RemoveBoat(BoatData.Info("LeftHarbour"), boat);
             }
-            leftHarbourLabel.Content = "Antal båtar i hamnen: " + leftHarbour.Port.Count();
-            if (rightHarbour.Port.Any())
+
+
+            //sedan vänstra
+            toRemove = rightHarbour.Port.Where(boat => boat.DaysSpentAtHarbour == boat.MaxDaysAtHarbour).ToList();
+            foreach (Boat boat in toRemove)
+            {
+                rightHarbour.Remove(boat);
+                BoatData.RemoveBoat(BoatData.Info("RightHarbour"), boat);
+            }
+
+
+            if (leftHarbour.Port.Any())
             {
                 foreach (Boat boat in leftHarbour.Port)
                 {
                     boat.DaysSpentAtHarbour++;
                 }
             }
-            rightHarbourLabel.Content = "Antal båtar i hamnen: " + rightHarbour.Port.Count();
-            boatsAtSea.AddBoatToWaiting(numberOfNewBoats);
+            if (rightHarbour.Port.Any())
+            {
+                foreach (Boat boat in rightHarbour.Port)
+                {
+                    boat.DaysSpentAtHarbour++;
+                }
+            }
+
+            daysPassed++;
+
         }
+
+
         private void TryToDock()
         {
-            foreach(Boat boat in boatsAtSea.Waiting)
+            foreach (Boat boat in boatsAtSea.Waiting)
             {
-                string assignedSpot = "";
-                if(leftHarbour.AreThereFreeSpots(boat, out assignedSpot))
+                if (leftHarbour.HasFreeSpots(boat, out string assignedSpot))
                 {
                     boat.AssignSpot(assignedSpot);
                     leftHarbour.UpdateSpots(boat);
                     leftHarbour.Port.Add(boat);
                 }
-                else if(rightHarbour.AreThereFreeSpots(boat, out assignedSpot))
+                else if (rightHarbour.HasFreeSpots(boat, out assignedSpot))
                 {
                     boat.AssignSpot(assignedSpot);
                     rightHarbour.UpdateSpots(boat);
@@ -139,20 +231,73 @@ namespace HamnSimulering
                     boatsRejected++;
                 }
             }
-            if(boatsAtSea.Waiting.Any())
+            if (boatsAtSea.Waiting.Any())
             {
                 boatsAtSea.Waiting.Clear();
             }
         }
-        private void manualContinue_Click(object sender, RoutedEventArgs e)
+        private void ManualContinue_Click(object sender, RoutedEventArgs e)
         {
             SimulateTimePassed();
         }
-        private void Save()
+
+
+        private void Save(object sender, System.ComponentModel.CancelEventArgs e)
         {
             SaveFileManager.Save(leftHarbour.Port, "left.txt");
             SaveFileManager.Save(rightHarbour.Port, "right.txt");
             SaveFileManager.Save(boatsAtSea.Waiting, "waiting.txt");
+            SaveFileManager.SaveStatistics("stats.txt", daysPassed, boatsRejected);
+        }
+
+        private void saveButton_Click(object sender, RoutedEventArgs e)
+        {
+            Save(sender, null);
+        }
+
+        private void newBoatsSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (!(newBoatsLabel is null))
+            {
+                try
+                {
+                    numberOfNewBoats = (int)e.NewValue;
+                    newBoatsLabel.Content = "Nya båtar per dag: " + numberOfNewBoats;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+            }
+        }
+
+        private void autoSpeedTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+
+            if(e.Key == System.Windows.Input.Key.Enter)
+            {
+                try
+                {
+
+                    timerSeconds = Int32.Parse(autoSpeedTextBox.Text);
+                }
+                catch(Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+            }
+        }
+
+        private void clearSave_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBoxResult result = MessageBox.Show("Are you sure you want to delete your savefile?", "WARNING!", MessageBoxButton.YesNo);
+            if (result == MessageBoxResult.Yes)
+            {
+                SaveFileManager.DeleteSaves();
+                LoadSaveFiles();
+                UpdateDataTables();
+                ListEmptySpots();
+            }
         }
     }
 }

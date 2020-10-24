@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace HamnSimulering
@@ -11,17 +12,21 @@ namespace HamnSimulering
         public List<Boat> Port = new List<Boat>();
 
         const float TotalSpots = 32;
-        public bool PreferSailboat { get; set; }
-        private bool[] SpotsInUse { get; set; }
+        public bool[] SpotsInUse { get; set; }
+        public int LargestSpot { get; set; }
         public float SpotsLeft => TotalSpots - Port.Sum(boat => boat.SizeInSpots);
 
-        public Harbour(bool preferSailBoat = false)
+        public Harbour()
         {
 
             SpotsInUse = new bool[32];
             Array.Fill(SpotsInUse, false);
-            PreferSailboat = preferSailBoat;
 
+        }
+
+        public void UpdateLargestSpot()
+        {
+            LargestSpot = GetLargestSpot();
         }
 
 
@@ -34,7 +39,7 @@ namespace HamnSimulering
             }
             else
             {
-                int end = boat.OccupiedSpots[1] - 1;
+                int end = boat.OccupiedSpots[1];
                 for (int i = start; i <= end; i++)
                 {
                     SpotsInUse[i] = false;
@@ -47,35 +52,45 @@ namespace HamnSimulering
         private bool CanBoatFitInHarbour(float spotsToTake, out string assignedSpot)
         {
             assignedSpot = "";
-            int currentSpot = 0;
-            int spotsFound = 0;
-            int endOfHarbour = SpotsInUse.GetUpperBound(0);
-            //if spot is taken then continue loop from last spot that was checked occupied
-            while (currentSpot + spotsToTake <= endOfHarbour)
+            if (this.LargestSpot < spotsToTake)
             {
-                if (SpotsInUse[currentSpot])
-                {
-                    spotsFound = 0;
-                    currentSpot++;
-                    continue;
-                }
-                else
-                {
-                    spotsFound++;
-                }
-                if (spotsFound == spotsToTake)
-                {
-
-                    int start = currentSpot - (int)spotsToTake + 1;
-                    int end = currentSpot;
-                    assignedSpot = $"{start},{end}";
-                    return true;
-                }
-                currentSpot++;
+                return false;
             }
-            return false;
+            else
+            {
+                int currentSpot = 0;
+                int spotsFound = 0;
+                int endOfHarbour = SpotsInUse.GetUpperBound(0);
+                //if spot is taken then continue loop from last spot that was checked occupied
+                while (currentSpot + spotsToTake <= endOfHarbour)
+                {
+                    if (SpotsInUse[currentSpot])
+                    {
+                        spotsFound = 0;
+                        currentSpot++;
+                        continue;
+                    }
+                    else
+                    {
+                        spotsFound++;
+                    }
+                    if (spotsFound == spotsToTake)
+                    {
+
+                        int start = currentSpot - (int)spotsToTake + 1;
+                        int end = currentSpot;
+                        assignedSpot = $"{start},{end}";
+                        return true;
+                    }
+                    currentSpot++;
+                }
+                return false;
+            }
         }
-        public bool AreThereFreeSpots(Boat currentBoat, out string assignedSpot)
+
+
+
+        public bool HasFreeSpots(Boat currentBoat, out string assignedSpot)
         {
             if (currentBoat is Rowboat)
             {
@@ -88,42 +103,72 @@ namespace HamnSimulering
             }
         }
 
+
+
+
         private bool FindSpotForRowboat(out string assignedSpot)
         {
             assignedSpot = "";
-            int spot = 0;
+            int currentSpot = 0;
             foreach (bool spotTaken in SpotsInUse)
             {
-                bool rowBoatWillFit = (Port.Count(boat => boat.OccupiedSpots[0] == spot && boat is Sailboat) < 2);
+                bool spotIsUsedByRowboat = spotTaken && Port.FirstOrDefault(boat => boat.OccupiedSpots[0] == currentSpot) is Rowboat;
+                bool rowBoatWillFit = spotIsUsedByRowboat && Port.Count(boat => boat.OccupiedSpots[0] == currentSpot) < 2;
 
-                Boat otherBoatOnSpot = Port.FirstOrDefault(boat => boat.OccupiedSpots[0] == spot);
-                if (rowBoatWillFit || !Port.Any(boat => boat.OccupiedSpots[0] == spot))
+                if (rowBoatWillFit || !spotTaken)
                 {
-                    assignedSpot = $"{spot}";
+                    assignedSpot = $"{currentSpot}";
                     return true;
                 }
-                spot++;
+                currentSpot++;
             }
             return false;
         }
+
+        int GetLargestSpot()
+        {
+            int largestSpot = 0;
+            int _temp = 0;
+            int i = 0;
+            while(i <= SpotsInUse.GetUpperBound(0))
+            {
+                bool spot = SpotsInUse[i];
+                if (!spot)
+                {
+                    _temp++;
+                }
+                else
+                {
+                    if (_temp > largestSpot)
+                        largestSpot = _temp;
+                    _temp = 0;
+                }
+                i++;
+            }
+            if (_temp > largestSpot)
+                largestSpot = _temp;
+            _temp = 0;
+            return largestSpot;
+        }
+
 
         public void UpdateSpots(Boat boat)
         {
             if (boat.OccupiedSpots.GetUpperBound(0) < 1)
             {
-                int actualSpot = boat.OccupiedSpots[0];
-                SpotsInUse[actualSpot] = true;
+                int assignedSpot = boat.OccupiedSpots[0];
+                SpotsInUse[assignedSpot] = true;
 
             }
             else
             {
-                int current = boat.OccupiedSpots[0];
+                int start = boat.OccupiedSpots[0];
                 int end = boat.OccupiedSpots[1];
-                do
+                while (start <= end)
                 {
-                    SpotsInUse[current] = true;
-                    current++;
-                } while (current <= end);
+                    SpotsInUse[start] = true;
+                    start++;
+                }
             }
         }
     }
