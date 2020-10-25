@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Navigation;
 
 namespace HamnSimulering
 {
@@ -12,15 +13,15 @@ namespace HamnSimulering
         public List<Boat> Port = new List<Boat>();
 
         const float TotalSpots = 32;
-        public bool[] SpotsInUse { get; set; }
+        public bool[] IsCurrentSpotTaken { get; set; }
         public int LargestSpot { get; set; }
         public float SpotsLeft => TotalSpots - Port.Sum(boat => boat.SizeInSpots);
 
         public Harbour()
         {
 
-            SpotsInUse = new bool[32];
-            Array.Fill(SpotsInUse, false);
+            IsCurrentSpotTaken = new bool[32];
+            Array.Fill(IsCurrentSpotTaken, false);
 
         }
 
@@ -30,94 +31,164 @@ namespace HamnSimulering
         }
 
 
+        public void RemoveBoats(string table)
+        {
+
+            List<Boat> toRemove = Port.Where(boat => boat.DaysSpentAtHarbour == boat.MaxDaysAtHarbour).ToList();
+            foreach(Boat boatToRemove in toRemove)
+            {
+                Remove(boatToRemove);
+                BoatData.RemoveBoat(boatToRemove, table);
+            }
+        }
+
         public void Remove(Boat boat)
         {
-            int start = boat.OccupiedSpots[0];
-            if (boat.SizeInSpots < 2f)
+
+            int start = boat.AssignedSpotAtHarbour[0];
+            try
             {
-                SpotsInUse[start] = false;
-            }
-            else
-            {
-                int end = boat.OccupiedSpots[1];
-                for (int i = start; i <= end; i++)
+                int end = boat.AssignedSpotAtHarbour[1];
+                bool notRowboat = !(boat is Rowboat);
+                bool anotherRowboat = Port.Count(otherBoat => otherBoat.AssignedSpotAtHarbour[0] == start && otherBoat is Rowboat) == 2;
+                if (notRowboat || !anotherRowboat)
                 {
-                    SpotsInUse[i] = false;
+                    for (int i = start; i <= end; i++)
+                    {
+                        IsCurrentSpotTaken[i] = false;
+                    }
                 }
             }
+            catch (Exception e)
+            {
+                if (e is IndexOutOfRangeException)
+                {
+                    IsCurrentSpotTaken[start] = false;
+                }
+                else
+                {
+                    MessageBox.Show(e.Message);
+                }
+            }
+
             Port.Remove(boat);
         }
 
 
-        private bool CanBoatFitInHarbour(float spotsToTake, out string assignedSpot)
-        {
-            assignedSpot = "";
-            if (this.LargestSpot < spotsToTake)
-            {
-                return false;
-            }
-            else
-            {
-                int currentSpot = 0;
-                int spotsFound = 0;
-                int endOfHarbour = SpotsInUse.GetUpperBound(0);
-                //if spot is taken then continue loop from last spot that was checked occupied
-                while (currentSpot + spotsToTake <= endOfHarbour)
-                {
-                    if (SpotsInUse[currentSpot])
-                    {
-                        spotsFound = 0;
-                        currentSpot++;
-                        continue;
-                    }
-                    else
-                    {
-                        spotsFound++;
-                    }
-                    if (spotsFound == spotsToTake)
-                    {
 
-                        int start = currentSpot - (int)spotsToTake + 1;
-                        int end = currentSpot;
-                        assignedSpot = $"{start},{end}";
-                        return true;
-                    }
-                    currentSpot++;
+        private bool TryAddFromBottom(float spotsToTake, out int[] assignedSpot)
+        {
+            assignedSpot = new int[2];
+            int currentSpot = IsCurrentSpotTaken.GetUpperBound(0);
+            int spotsFound = 0;
+
+            for(int i = currentSpot; i >= 0; i--) 
+            {
+                bool spotTaken = IsCurrentSpotTaken[i];
+                if (spotTaken)
+                {
+                    spotsFound = 0;
+                    currentSpot--;
+                    continue;
                 }
-                return false;
+                else
+                {
+                    spotsFound++;
+                }
+
+
+                if (spotsFound == spotsToTake)
+                {
+                    //t.ex en segelbåt ska ha 2 platser, plats 1 och 2, 2 - (antal platser den ska ha (2)) = 0 0,1,2 blir 3 platser, därför plussar jag på 1 så det blir 1,2
+                    int start = currentSpot;
+                    int end = (currentSpot + (int)spotsToTake) - 1;
+                    assignedSpot = new int[2] { start, end };
+                    return true;
+                }
+                currentSpot--;
             }
+            return false;
         }
 
 
-
-        public bool HasFreeSpots(Boat currentBoat, out string assignedSpot)
+        private bool TryAddFromTop(float spotsToTake, out int[] assignedSpot)
         {
-            if (currentBoat is Rowboat)
+            assignedSpot = new int[2];
+            int currentSpot = 0;
+            int spotsFound = 0;
+
+            foreach(bool spotTaken in IsCurrentSpotTaken)
             {
-                return FindSpotForRowboat(out assignedSpot);
+                if(spotTaken)
+                {
+                    spotsFound = 0;
+                    currentSpot++;
+                    continue;
+                }
+                else
+                {
+                    spotsFound++;
+                }
+
+
+                if (spotsFound == spotsToTake)
+                {
+                    //t.ex en segelbåt ska ha 2 platser, plats 1 och 2, 2 - (antal platser den ska ha (2)) = 0 0,1,2 blir 3 platser, därför plussar jag på 1 så det blir 1,2
+                    int start = (currentSpot - (int)spotsToTake) + 1; 
+                    int end = currentSpot;
+                    assignedSpot = new int[2] {start, end};
+                    return true;
+                }
+                currentSpot++;
+
+
+            }
+            return false;
+        }
+
+        
+
+
+
+        public bool HasFreeSpots(Boat currentBoat, out int[] assignedSpot)
+        {
+            bool needsOneSpot = currentBoat.SizeInSpots <= 1f;
+            if(currentBoat.SizeInSpots > LargestSpot)
+            {
+                assignedSpot = new int[1];
+                return false;
+            }
+            else if (needsOneSpot)
+            {
+                return FindSpotForSmallBoat(currentBoat, out assignedSpot);
             }
             else
             {
                 float boatSize = currentBoat.SizeInSpots;
-                return CanBoatFitInHarbour(boatSize, out assignedSpot);
+                return boatSize % 2 == 0 ? TryAddFromTop(boatSize, out assignedSpot) : TryAddFromBottom(boatSize, out assignedSpot);
             }
         }
 
 
 
 
-        private bool FindSpotForRowboat(out string assignedSpot)
+        private bool FindSpotForSmallBoat(Boat currentBoat, out int[] assignedSpot)
         {
-            assignedSpot = "";
+            assignedSpot = new int[1];
             int currentSpot = 0;
-            foreach (bool spotTaken in SpotsInUse)
+
+
+            foreach (bool spotTaken in IsCurrentSpotTaken)
             {
-                bool spotIsUsedByRowboat = spotTaken && Port.FirstOrDefault(boat => boat.OccupiedSpots[0] == currentSpot) is Rowboat;
-                bool rowBoatWillFit = spotIsUsedByRowboat && Port.Count(boat => boat.OccupiedSpots[0] == currentSpot) < 2;
+                bool rowBoatOnSpot = Port.FirstOrDefault(boat => boat.AssignedSpotAtHarbour[0] == currentSpot) is Rowboat;
+                bool spotIsUsedByRowboat = spotTaken && rowBoatOnSpot;
+                bool isThereSpace = Port.Count(boat => boat.AssignedSpotAtHarbour[0] == currentSpot) < 2;
+
+                bool rowBoatWillFit = spotIsUsedByRowboat && isThereSpace && currentBoat is Rowboat;
 
                 if (rowBoatWillFit || !spotTaken)
                 {
-                    assignedSpot = $"{currentSpot}";
+                    assignedSpot = new int[1] {currentSpot};
                     return true;
                 }
                 currentSpot++;
@@ -130,46 +201,127 @@ namespace HamnSimulering
             int largestSpot = 0;
             int _temp = 0;
             int i = 0;
-            while(i <= SpotsInUse.GetUpperBound(0))
+            while (i <= IsCurrentSpotTaken.GetUpperBound(0))
             {
-                bool spot = SpotsInUse[i];
+                bool spot = IsCurrentSpotTaken[i];
                 if (!spot)
                 {
                     _temp++;
                 }
                 else
                 {
-                    if (_temp > largestSpot)
-                        largestSpot = _temp;
+                    largestSpot = CompareValues(_temp, largestSpot);
                     _temp = 0;
                 }
                 i++;
             }
-            if (_temp > largestSpot)
-                largestSpot = _temp;
-            _temp = 0;
+            largestSpot = CompareValues(_temp, largestSpot);
             return largestSpot;
+        }
+
+
+
+        int CompareValues(int first, int second)
+        {
+            return first > second ? first : second;
         }
 
 
         public void UpdateSpots(Boat boat)
         {
-            if (boat.OccupiedSpots.GetUpperBound(0) < 1)
+            int start = boat.AssignedSpotAtHarbour[0];
+            try
             {
-                int assignedSpot = boat.OccupiedSpots[0];
-                SpotsInUse[assignedSpot] = true;
-
-            }
-            else
-            {
-                int start = boat.OccupiedSpots[0];
-                int end = boat.OccupiedSpots[1];
+                int end = boat.AssignedSpotAtHarbour[1];
                 while (start <= end)
                 {
-                    SpotsInUse[start] = true;
+                    IsCurrentSpotTaken[start] = true;
                     start++;
+                }
+            }
+            catch(Exception e)
+            {
+                if (e is IndexOutOfRangeException)
+                {
+                    IsCurrentSpotTaken[start] = true;
+                }
+                else
+                {
+                    MessageBox.Show(e.Message);
                 }
             }
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//private bool CanBoatFitInHarbour(float spotsToTake, out string assignedSpot)
+//{
+//    //if (this.LargestSpot < spotsToTake)
+//    //{
+//    //    return false;
+//    //}
+//    //else
+//    //{
+//    assignedSpot = "";
+//    int currentSpot = 0;
+//    int spotsFound = 0;
+//    int endOfHarbour = IsCurrentSpotTaken.GetUpperBound(0);
+//    //if spot is taken then continue loop from last spot that was checked occupied
+//    while (currentSpot + spotsToTake <= endOfHarbour)
+//    {
+//        if (IsCurrentSpotTaken[currentSpot])
+//        {
+//            spotsFound = 0;
+//            currentSpot++;
+//            continue;
+//        }
+//        else
+//        {
+//            spotsFound++;
+//            currentSpot++;
+//        }
+//        if (spotsFound == spotsToTake)
+//        {
+
+//            int start = currentSpot - (int)spotsToTake;
+//            int end = currentSpot;
+//            assignedSpot = $"{start},{end}";
+//            return true;
+//        }
+//    }
+//    return false;
+//}
+////}

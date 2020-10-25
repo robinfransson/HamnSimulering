@@ -5,29 +5,36 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HamnSimulering"
         mc:Ignorable="d"
-        Title="Hamnsimulering" Height="974" Width="1436" ResizeMode="NoResize" Closing="Save">
+        Title="Hamnsimulering" Height="649" Width="1436" ResizeMode="NoResize" Closing="Save">
 
-    <Canvas HorizontalAlignment="Center" Height="964" VerticalAlignment="Top" Width="1436">
-        <Button x:Name="manualContinue" Content="Nästa dag" Height="45" Canvas.Top="791" Width="114" Canvas.Left="24" Click="ManualContinue_Click"/>
-        <Button x:Name="toggleAuto" Content="Auto" Height="44" Canvas.Left="24" Canvas.Top="856" Width="114" Click="toggleAuto_Click"/>
-        <Label x:Name="leftHarbourLabel" Content="Antar båtar i hamnen: 0" Height="29" Canvas.Left="10" Canvas.Top="653" Width="198" HorizontalContentAlignment="Center"/>
-        <Label x:Name="rightHarbourLabel" Content="Antar båtar i hamnen: 0" Height="29" Canvas.Left="970" Canvas.Top="653" Width="204" HorizontalContentAlignment="Center" />
-        <DataGrid x:Name="leftHarbourGrid" Height="641" Canvas.Left="10" Canvas.Top="10" Width="703" AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" ColumnWidth="*">
+    <Canvas HorizontalAlignment="Center" Height="639" VerticalAlignment="Top" Width="1436">
+        <Button x:Name="manualContinue" Content="Nästa dag" Height="45" Canvas.Top="333" Width="114" Canvas.Left="24" Click="ManualContinue_Click"/>
+        <Button x:Name="toggleAuto" Content="Auto" Height="44" Canvas.Left="151" Canvas.Top="334" Width="114" Click="toggleAuto_Click"/>
+        <Label x:Name="leftHarbourLabel" Content="Antar båtar i hamnen: 0" Height="29" Canvas.Left="319" Canvas.Top="561" Width="198" HorizontalContentAlignment="Center"/>
+        <Label x:Name="rightHarbourLabel" Content="Antar båtar i hamnen: 0" Height="29" Canvas.Left="815" Canvas.Top="561" Width="204" HorizontalContentAlignment="Center" />
+        <DataGrid x:Name="leftHarbourGrid" Height="544" Canvas.Left="311" Canvas.Top="12" Width="465" AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" ColumnWidth="*" AutoGeneratingColumn="HarbourGrid_AutoGeneratingColumn" >
         </DataGrid>
-        <DataGrid x:Name="waitingBoatsGrid" Height="196" Canvas.Left="523" Canvas.Top="656" Width="390"  AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" ColumnWidth="*">
+        <DataGrid x:Name="waitingBoatsGrid" Height="206" Canvas.Left="10" Canvas.Top="12" Width="281"  AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" ColumnWidth="*" >
         </DataGrid>
-        <DataGrid x:Name="rightHarbourGrid" Height="638" Canvas.Left="718" Canvas.Top="10" Width="708" AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" GridLinesVisibility="Horizontal" ColumnWidth="*">
+        <DataGrid x:Name="rightHarbourGrid" Height="544" Canvas.Left="799" Canvas.Top="12" Width="465" AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" GridLinesVisibility="Horizontal" ColumnWidth="*" AutoGeneratingColumn="HarbourGrid_AutoGeneratingColumn">
         </DataGrid>
-        <Label x:Name="waitingBoatsLabel" Content="Väntande båtar: 0" Height="26" Canvas.Left="660" Canvas.Top="852" Width="116"/>
-        <Label x:Name="rejectedBoatsLabel" Content="Avvisade båtar: 0" Height="30" Canvas.Left="24" Canvas.Top="905" Width="158"/>
-        <Label x:Name="numberOfDaysLabel" Content="Passerade dagar: 0" Height="25" Canvas.Left="24" Canvas.Top="735" Width="132"/>
-        <Button x:Name="saveButton" Content="Save" Height="42" Canvas.Left="1124" Canvas.Top="882" Width="140" Click="saveButton_Click"/>
-        <Label x:Name="leftHarbourSpotsLeftLabel" Content="Lediga platser: " Height="29" Canvas.Left="296" Canvas.Top="653" Width="132"/>
-        <Label x:Name="rightHarbourSpotsLeftLabel" Content="Lediga platser: " Height="29" Canvas.Left="1226" Canvas.Top="653" Width="132"/>
-        <Slider x:Name="newBoatsSlider" Height="23" Canvas.Left="617" Canvas.Top="912" Width="202" Value="5" TickPlacement="None" ValueChanged="newBoatsSlider_ValueChanged" SmallChange="1"/>
-        <Label x:Name="newBoatsLabel" Content="Nya båtar per dag: 5" Height="30" Canvas.Left="617" Canvas.Top="882" Width="146"/>
-        <TextBox x:Name="autoSpeedTextBox" Height="19" Canvas.Left="143" Canvas.Top="878" Text="5" TextWrapping="Wrap" Width="84" KeyDown="autoSpeedTextBox_KeyDown"/>
-        <Label Content="Auto Speed:" Height="26" Canvas.Left="143" Canvas.Top="852" Width="84"/>
-        <Button x:Name="clearSave" Content="Clear save" Height="42" Canvas.Left="1286" Canvas.Top="882" Width="140" Click="clearSave_Click" />
+        <Label x:Name="waitingBoatsLabel" Content="Väntande båtar: 0" Height="26" Canvas.Left="93" Canvas.Top="223" Width="116"/>
+        <Label x:Name="rejectedBoatsLabel" Content="Avvisade båtar: 0" Height="30" Canvas.Left="24" Canvas.Top="435" Width="158"/>
+        <Label x:Name="numberOfDaysLabel" Content="Passerade dagar: 0" Height="25" Canvas.Left="24" Canvas.Top="410" Width="132"/>
+        <Button x:Name="saveButton" Content="Save" Height="42" Canvas.Left="10" Canvas.Top="482" Width="140" Click="saveButton_Click"/>
+        <Label x:Name="leftHarbourSpotsLeftLabel" Content="Lediga platser: " Height="29" Canvas.Left="568" Canvas.Top="561" Width="132"/>
+        <Label x:Name="rightHarbourSpotsLeftLabel" Content="Lediga platser: " Height="29" Canvas.Left="1048" Canvas.Top="561" Width="132"/>
+        <Slider x:Name="newBoatsSlider" Height="23" Canvas.Left="50" Canvas.Top="279" Width="202" Value="5" TickPlacement="None" ValueChanged="newBoatsSlider_ValueChanged" SmallChange="1" Maximum="100"/>
+        <Label x:Name="newBoatsLabel" Content="Nya båtar per dag: 5" Height="30" Canvas.Left="78" Canvas.Top="249" Width="146"/>
+        <TextBox x:Name="autoSpeedTextBox" Height="19" Canvas.Left="166" Canvas.Top="435" Text="5" TextWrapping="Wrap" Width="84" KeyDown="autoSpeedTextBox_KeyDown"/>
+        <Label Content="Auto Speed:" Height="26" Canvas.Left="166" Canvas.Top="404" Width="84"/>
+        <Button x:Name="clearSave" Content="Clear save" Height="42" Canvas.Left="155" Canvas.Top="482" Width="140" Click="clearSave_Click" />
+        <Label x:Name="col2" Content="Col2" Height="34" Canvas.Left="393" Canvas.Top="590" Width="69" Visibility="Hidden"/>
+        <Label x:Name="col3" Content="Col3" Height="34" Canvas.Left="474" Canvas.Top="590" Width="70" Visibility="Hidden"/>
+        <Label x:Name="col4" Content="Col4" Height="34" Canvas.Left="565" Canvas.Top="590" Width="69" Visibility="Hidden"/>
+        <Label x:Name="col1" Content="Col1" Height="34" Canvas.Left="319" Canvas.Top="590" Width="69" Visibility="Hidden"/>
+        <Label x:Name="col5" Content="Col5" Height="34" Canvas.Left="649" Canvas.Top="589" Width="69" Visibility="Hidden"/>
+        <Label x:Name="col6" Content="Col6" Height="34" Canvas.Left="723" Canvas.Top="590" Width="69" Visibility="Hidden"/>
+        <Label x:Name="col7" Content="Col7" Height="34" Canvas.Left="792" Canvas.Top="589" Width="69" Visibility="Hidden"/>
     </Canvas>
 </Window>

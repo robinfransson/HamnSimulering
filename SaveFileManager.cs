@@ -19,7 +19,7 @@ namespace HamnSimulering
 
         public static void DeleteSaves()
         {
-            string[] saveFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.txt");
+            string[] saveFiles = new string[4] { "left.txt", "right.txt", "waiting.txt", "stats.txt" };
             foreach (string file in saveFiles)
             {
                 File.Delete(file);
@@ -129,7 +129,7 @@ namespace HamnSimulering
             {
                 char dataSeparator = ';';
                 string boatData = "";
-                int? numberOfSpots = boat.OccupiedSpots?.Length;
+                int? numberOfSpots = boat.AssignedSpotAtHarbour?.Length;
                  
                 //generell info om båtarna först, sedan tas varje "special" property ut och läggs till på slutet av strängen
                 boatData += $"{boat.ModelID}" + dataSeparator;
@@ -159,10 +159,10 @@ namespace HamnSimulering
                 switch(numberOfSpots) //längden av arrayen där platserna sparas
                 {
                     case 1:
-                        boatData += dataSeparator + $"{boat.OccupiedSpots[0]}";
+                        boatData += dataSeparator + $"{boat.AssignedSpotAtHarbour[0]}";
                         break;
                     case 2:
-                        boatData += dataSeparator + $"{boat.OccupiedSpots[0]}-{boat.OccupiedSpots[1]}";
+                        boatData += dataSeparator + $"{boat.AssignedSpotAtHarbour[0]}-{boat.AssignedSpotAtHarbour[1]}";
                         break;
                     default:
                         break;

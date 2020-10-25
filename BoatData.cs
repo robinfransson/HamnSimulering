@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace HamnSimulering
 {
+
     class BoatData
     {
 
@@ -14,23 +17,25 @@ namespace HamnSimulering
 
 
 
+       
+
         public static DataView BoatDataViewer(string table)
         {
-            Func<string, char, int?> splitColumnData = new Func<string, char, int?>
-                ((data, splitAt) => data is null ? 32 : int.Parse(data?.Split(splitAt)[0]));
-            var boats = boatInfo.Tables[table].AsEnumerable();
-            var q1 = boats
-                                .OrderBy(row => splitColumnData(row.Field<string>("Plats"), '-'))
-                                .ThenBy(row => row.Field<string>("Dagar vid hamnen") != null)
-                                .ThenBy(row => splitColumnData(row.Field<string>("Dagar vid hamnen"), '/'));
-            //var q1 = assignedSpot.OrderBy(days => daysAtHarbour);
-            EnumerableRowCollection<DataRow> query = from boat in boats
-                                                     orderby int.Parse(boat.Field<string>("Plats").Split("-")[0]) ascending
-                                                     orderby int.Parse(boat.Field<string>("Dagar vid hamnen").Split("/")[0]) descending
-                                                     select boat;
-            //return q1.AsDataView();
-            //return query.AsDataView();
-            return q1.AsDataView();
+            if(table == "WaitingBoats")
+            {
+                return boatInfo.Tables[table].DefaultView;
+            }
+            else
+            {
+                Func<string, char, int> splitColumnData = new Func<string, char, int>
+                    ((data, splitAt) => int.Parse(data.Split(splitAt)[0]));
+
+
+
+                var boats = boatInfo.Tables[table].AsEnumerable();
+                var q1 = boats.OrderBy(row => splitColumnData(row.Field<string>("Plats"), '-'));
+                return q1.AsDataView();
+            }
         }
 
 
@@ -41,8 +46,8 @@ namespace HamnSimulering
                 DataTable harbourTable = new DataTable
                 {
                     Columns = { { "Plats", typeof(string) }, { "Båttyp", typeof(string) }, { "Vikt", typeof(int) },
-                                { "Nr", typeof(string) }, { "Maxhastighet", typeof(string) },
-                                { "Dagar vid hamnen", typeof(string) }, { "Övrigt", typeof(string) }, }
+                                { "Nr", typeof(string) }, { "Maxhast", typeof(string) },
+                                { "Dagar", typeof(string) }, { "Övrigt", typeof(string) }, }
                 };
 
                 if (i == 0)
@@ -59,24 +64,16 @@ namespace HamnSimulering
             DataTable waitingBoatsTable = new DataTable("WaitingBoats")
             {
                 Columns = { { "Båttyp", typeof(string) }, { "Vikt", typeof(int) },
-                                { "Nr", typeof(string) }, { "Maxhastighet", typeof(string) }, { "Övrigt", typeof(string) }, }
+                                { "Nr", typeof(string) }, { "Maxhast", typeof(string) }, { "Övrigt", typeof(string) }, }
             };
 
             boatInfo.Tables.Add(waitingBoatsTable);
         }
 
 
-
-
-
-        public static DataTable Info(string tableName)
+        public static void ListFreeSpots(bool[] spotsInUse, string tableToModify)
         {
-            return boatInfo.Tables[tableName];
-        }
-
-
-        public static void ListFreeSpots(bool[] spotsInUse, DataTable table)
-        {
+            DataTable table = boatInfo.Tables[tableToModify];
             int currentSpot = 1;
             DataRow freeSpot;
             foreach (bool spot in spotsInUse)
@@ -93,6 +90,12 @@ namespace HamnSimulering
             }
         }
 
+        public static void ClearTable(string tableToClear)
+        {
+            DataTable table = boatInfo.Tables[tableToClear];
+            table.Clear();
+        }
+
 
         public static void UpdateVisitors(List<Boat> boatsAtSea)
         {
@@ -107,7 +110,7 @@ namespace HamnSimulering
                     newWaitingBoat["Båttyp"] = boat.GetBoatType();
                     newWaitingBoat["Vikt"] = boat.Weight;
                     newWaitingBoat["Nr"] = boat.ModelID;
-                    newWaitingBoat["Maxhastighet"] = boat.TopSpeedKMH;
+                    newWaitingBoat["Maxhast"] = boat.TopSpeedKMH;
                     newWaitingBoat["Övrigt"] = boat.SpecialProperty;
                     boatsWaiting.Rows.Add(newWaitingBoat);
                 }
@@ -119,13 +122,12 @@ namespace HamnSimulering
         }
 
 
-        public static void RemoveBoat(DataTable table, Boat boat)
+        public static void RemoveBoat(Boat boat, string tableToModify)
         {
+            DataTable table = boatInfo.Tables[tableToModify];
             try
             {
-                DataRow currentBoat = table.Select($"Nr = '{boat.ModelID}'").FirstOrDefault(); ;
-
-
+                DataRow currentBoat = table.Select($"Nr = '{boat.ModelID}'").FirstOrDefault();
                 table.Rows.Remove(currentBoat);
             }
             catch (Exception e)
@@ -139,9 +141,9 @@ namespace HamnSimulering
 
 
 
-        public static void UpdateHarbour(DataTable table, List<Boat> boats)
+        public static void UpdateHarbour(List<Boat> boats, string tableToUpdate)
         {
-
+            DataTable table = boatInfo.Tables[tableToUpdate];
             foreach (DataRow emptySpot in table.Select("Båttyp = 'Ledigt'"))
             {
                 table.Rows.Remove(emptySpot);
@@ -158,22 +160,19 @@ namespace HamnSimulering
             DataRow currentBoat = table.Select($"Nr = '{boat.ModelID}'").FirstOrDefault();
             if (currentBoat != null)
             {
-                currentBoat["Dagar vid hamnen"] = $"{boat.DaysSpentAtHarbour}/{boat.MaxDaysAtHarbour}";
+                currentBoat["Dagar"] = $"{boat.DaysSpentAtHarbour}/{boat.MaxDaysAtHarbour}";
             }
             else
             {
                 try
                 {
-                //    Columns = { // 
-                //        { "Båttyp", typeof(string) }, { "Vikt", typeof(string) },
-                //                { "Nr", typeof(string) }, { "Maxhastighet", typeof(string) }, { "Övrigt", typeof(string) }, }
                     currentBoat = table.NewRow();
                     currentBoat["Plats"] = boat.GetSpot();
                     currentBoat["Båttyp"] = boat.GetBoatType();
                     currentBoat["Vikt"] = boat.Weight;
                     currentBoat["Nr"] = boat.ModelID;
-                    currentBoat["Maxhastighet"] = boat.TopSpeedKMH;
-                    currentBoat["Dagar vid hamnen"] = $"{boat.DaysSpentAtHarbour}/{boat.MaxDaysAtHarbour}";
+                    currentBoat["Maxhast"] = boat.TopSpeedKMH;
+                    currentBoat["Dagar"] = $"{boat.DaysSpentAtHarbour}/{boat.MaxDaysAtHarbour}";
                     currentBoat["Övrigt"] = boat.SpecialProperty;
                     table.Rows.Add(currentBoat);
                 }
