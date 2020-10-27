@@ -20,12 +20,27 @@ namespace HamnSimulering
 
 
         bool automatic = false;
-        Harbour leftHarbour = new Harbour();
-        Harbour rightHarbour = new Harbour();
+        Harbour leftHarbour = new Harbour("LeftHarbour");
+        Harbour rightHarbour = new Harbour("RightHarbour");
         WaitingBoats waitingBoats = new WaitingBoats();
         DispatcherTimer dispatcherTimer;
         int timerSeconds = 5;
         int timesSinceSave = 0;
+        static Func<List<Boat>, long> AverageWeight = (p) => p.Sum(boat => boat.Weight) / p.Count;
+        Func<Harbour, string> HarbourInfo = (harb) =>
+        {
+            return
+
+
+            $"Roddbåtar: {harb.Port.Count(boat => boat is Rowboat)} \n" +
+            $"Motorbåtar: {harb.Port.Count(boat => boat is Motorboat)} \n" +
+            $"Segelbåtar: {harb.Port.Count(boat => boat is Sailboat)} \n" +
+            $"Katamaraner: {harb.Port.Count(boat => boat is Catamaran)} \n" +
+            $"Lastfartyg: {harb.Port.Count(boat => boat is Cargoship)} \n\n" +
+            $"Totalvikt: {harb.Port.Sum(boat => boat.Weight)}\n" +
+            $"Snittvikt: {AverageWeight(harb.Port)} \n";
+
+        };
 
 
 
@@ -54,16 +69,16 @@ namespace HamnSimulering
 
 
             LoadSaveFiles();
-            Simulate.UpdateDataTable(leftHarbour, "LeftHarbour");
-            Simulate.UpdateDataTable(rightHarbour, "RightHarbour");
+            Simulate.UpdateData(leftHarbour);
+            Simulate.UpdateData(rightHarbour);
+
             BoatData.UpdateVisitors(waitingBoats.Waiting);
             UpdateLabels();
-            leftHarbour.UpdateLargestSpot();
-            rightHarbour.UpdateLargestSpot();
+
+
 
         }
-
-        void UpdateLabels()
+        public void UpdateLabels()
         {
             waitingBoatsLabel.Content = "Väntande båtar: " + waitingBoats.Waiting.Count();
             numberOfDaysLabel.Content = "Passerade dagar: " + Simulate.daysPassed;
@@ -76,6 +91,10 @@ namespace HamnSimulering
 
             rightHarbourLabel.Content = "Antal båtar i hamnen: " + rightHarbour.Port.Count();
             rightHarbourSpotsLeftLabel.Content = "Lediga platser: " + rightHarbour.SpotsLeft;
+
+
+            rightHarbourLabel.ToolTip = HarbourInfo(rightHarbour);
+            leftHarbourLabel.ToolTip = HarbourInfo(leftHarbour);
         }
 
 
@@ -209,8 +228,8 @@ namespace HamnSimulering
             {
                 SaveFileManager.DeleteSaves();
 
-                leftHarbour = new Harbour();
-                rightHarbour = new Harbour();
+                leftHarbour = new Harbour("LeftHarbour");
+                rightHarbour = new Harbour("RightHarbour");
                 waitingBoats = new WaitingBoats();
 
                 BoatData.ClearTable("LeftHarbour");
@@ -220,8 +239,8 @@ namespace HamnSimulering
 
                 Simulate.AddToWaiting(waitingBoats);
                 BoatData.UpdateVisitors(waitingBoats.Waiting);
-                Simulate.ListEmptySpots(leftHarbour, "LeftHarbour");
-                Simulate.ListEmptySpots(rightHarbour, "RightHarbour");
+                Simulate.UpdateData(leftHarbour);
+                Simulate.UpdateData(rightHarbour);
             }
         }
 

@@ -71,10 +71,6 @@ namespace HamnSimulering
 
         static List<Boat> LoadFromFile(string fileName)
         {
-            if(fileName == "waiting.txt")
-            {
-
-            }
             Func<string, int, int, int, int, int[], Boat> addBoat = (id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken) =>
             {
 
@@ -143,7 +139,7 @@ namespace HamnSimulering
                         boatData += $"{row.MaxCapacity}";
                         break;
                     case Cargoship cargo:
-                        boatData += $"{cargo.CurrentCargo}";
+                        boatData += $"{cargo.Containers}";
                         break;
                     case Sailboat sail:
                         boatData += $"{sail.BoatLength}";

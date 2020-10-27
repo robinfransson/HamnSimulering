@@ -11,7 +11,6 @@ namespace HamnSimulering
         {
             MaxCapacity = passengers;
             SizeInSpots = 0.5f;
-            SpecialProperty = $"{MaxCapacity} personer";
             MaxDaysAtHarbour = 1;
         }
 

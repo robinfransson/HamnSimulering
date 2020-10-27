@@ -10,7 +10,6 @@ namespace HamnSimulering
         public Catamaran(string id, int weight, int topSpeedInKnots, int beds, int daysSpent = 0, int[] spots = null) : base(id, weight, topSpeedInKnots, daysSpent, spots)
         {
             NumberOfBeds = beds;
-            SpecialProperty = $"{NumberOfBeds} sängar";
             SizeInSpots = 3f;
             MaxDaysAtHarbour = 3;
         }
