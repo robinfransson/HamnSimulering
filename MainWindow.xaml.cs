@@ -18,7 +18,7 @@ namespace HamnSimulering
     {
 
 
-
+        bool errorShown = false;
         bool automatic = false;
         Harbour leftHarbour = new Harbour("LeftHarbour");
         Harbour rightHarbour = new Harbour("RightHarbour");
@@ -26,7 +26,18 @@ namespace HamnSimulering
         DispatcherTimer dispatcherTimer;
         int timerSeconds = 5;
         int timesSinceSave = 0;
-        static Func<List<Boat>, long> AverageWeight = (p) => p.Sum(boat => boat.Weight) / p.Count;
+        static Func<List<Boat>, long> AverageWeight = (p) =>
+        {
+            if (p.Any())
+            {
+                return p.Sum(boat => boat.Weight) / p.Count;
+            }
+            else
+            {
+                return 0;
+            }
+
+        };
         Func<Harbour, string> HarbourInfo = (harb) =>
         {
             return
@@ -210,7 +221,7 @@ namespace HamnSimulering
                 try
                 {
 
-                    timerSeconds = Int32.Parse(autoSpeedTextBox.Text); 
+                    timerSeconds = Int32.Parse(autoSpeedTextBox.Text);
                     dispatcherTimer.Interval = new TimeSpan(0, 0, timerSeconds);
                 }
                 catch (Exception ex)
