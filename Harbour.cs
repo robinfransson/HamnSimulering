@@ -18,7 +18,7 @@ namespace HamnSimulering
         public string HarbourName { get; set; }
 
         const float TotalSpots = 32;
-        public bool[] IsCurrentSpotTaken { get; set; }
+        public bool[] SpotIsTaken { get; set; }
         public int LargestSpot { get; set; }
 
         public List<Boat> RemovedBoats = new List<Boat>();
@@ -27,8 +27,8 @@ namespace HamnSimulering
         public Harbour(string name)
         {
             HarbourName = name;
-            IsCurrentSpotTaken = new bool[32];
-            Array.Fill(IsCurrentSpotTaken, false);
+            SpotIsTaken = new bool[32];
+            Array.Fill(SpotIsTaken, false);
 
         }
 
@@ -60,11 +60,11 @@ namespace HamnSimulering
             if (boat is Rowboat && value == false)
             {
                 bool anotherRowboat = Port.Any(otherBoat => otherBoat.AssignedSpotAtHarbour[0] == spot && otherBoat.ModelID != boat.ModelID && otherBoat is Rowboat);
-                IsCurrentSpotTaken[spot] = anotherRowboat;
+                SpotIsTaken[spot] = anotherRowboat;
             }
             else
             {
-                IsCurrentSpotTaken[spot] = value;
+                SpotIsTaken[spot] = value;
             }
         }
 
@@ -81,7 +81,7 @@ namespace HamnSimulering
             int lastSpot = boat.AssignedSpotAtHarbour[1];
             for (int i = firstSpot; i <= lastSpot; i++)
             {
-                IsCurrentSpotTaken[i] = value;
+                SpotIsTaken[i] = value;
             }
         }
         public void Remove(Boat boat)

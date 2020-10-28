@@ -9,73 +9,208 @@ namespace HamnSimulering
 {
     class Simulate
     {
-        static AssignHarbourSpot assignLeft;
-        static AssignHarbourSpot assignRight;
+        static List<AssignHarbourSpot> assigners = new List<AssignHarbourSpot>();
+        public static List<Boat> waitingBoats = new List<Boat>();
 
         public static int boatsRejected = 0;
+        public static int boatsAccepted = 0;
         public static int daysPassed = 0;
         public static int numberOfNewBoats = 5;
-        static Func<Boat, bool> NotAssigned => (b) => b.AssignedSpotAtHarbour == null;
+        static List<Boat> rowboatsWaiting;
+        static List<Boat> otherBoatsWaiting;
+        static Func<Boat, bool> NotAssigned => (boat) => boat.AssignedSpotAtHarbour == null;
+        static Action<List<Boat>> ShowWho => (boats) => {
+            string info = "";
+            if (boats.Any())
+            {
+                foreach (Boat boat in boats)
+                {
+                    info += $"{boat.GetBoatType()} {boat.ModelID} ({boat.SizeInSpots}) did not fit!\n";
+                }
+                MessageBox.Show(info);
+            }
+            };
 
-
-        public static void OneDay(WaitingBoats waitingBoats, Harbour leftHarbour, Harbour rightHarbour)
+        public static void SetupAssigner(Harbour harbour, bool reset=false)
         {
-            //ListEmptySpots(leftHarbour);
-            //ListEmptySpots(rightHarbour);
+            if (!reset)
+            {
+                assigners.Add(new AssignHarbourSpot(harbour));
+            }
+            else
+            {
+                var assigner = assigners.FirstOrDefault(assigner => assigner.AssignedHarbour == harbour.HarbourName);
+                if(assigner != null)
+                {
+                    assigners.Remove(assigner);
+                    assigners.Add(new AssignHarbourSpot(harbour));
+                }
+                else
+                {
+                    throw new IndexOutOfRangeException();
+                }
+            }
+        }
 
 
+        static void GetPositions()
+        {
+            foreach (AssignHarbourSpot assigner in assigners)
+            {
+                assigner.GetPositions();
+            }
+        }
+
+       //static void GiveUsedSpots(List<Boat> boats)
+       //{
+       //    foreach (AssignHarbourSpot assigner in assigners)
+       //    {
+       //        assigner.GivePositions__fix(boats);
+       //    }
+       //    
+       //}
+
+        static void TryAssignRowboat()
+        {
+            foreach (AssignHarbourSpot assigner in assigners)
+            {
+                //assigner.PlaceRowboat(rowboatsWaiting);
+                assigner.GiveRowboatUnassignedSpot(rowboatsWaiting);
+            }
+        }
+
+        static void CombineUsedSpots()
+        {
+            foreach (AssignHarbourSpot assigner in assigners)
+            {
+                assigner.MergePositions();
+            }
+        }
+
+        static void TryUsedSpots()
+        {
+            foreach (AssignHarbourSpot assigner in assigners)
+            {
+                assigner.GivePositions(otherBoatsWaiting);
+            }
+        }
+
+        static void AddFromBottom()
+        {
+            foreach (AssignHarbourSpot assigner in assigners)
+            {
+                assigner.TryAddFromBottom(otherBoatsWaiting);
+            }
+
+        }
 
 
-
-            assignLeft = new AssignHarbourSpot(leftHarbour);
-            assignLeft.GetPositions();
-            assignRight = new AssignHarbourSpot(rightHarbour);
-            assignRight.GetPositions();
-
-            List<Boat> waiting = waitingBoats.Waiting;
-
-            List<Boat> rowboatsWaiting = waiting.Where(boat => boat is Rowboat).ToList();
-            List<Boat> otherBoatsWaiting = waiting.Where(boat => !(boat is Rowboat)).ToList();
-
-            assignLeft.PlaceRowboat(rowboatsWaiting);
-            assignRight.PlaceRowboat(rowboatsWaiting);
-
-            assignLeft.MergePositions();
-            assignRight.MergePositions();
-
-            assignLeft.GiveRowboatUnassignedSpot(rowboatsWaiting);
-            assignRight.GiveRowboatUnassignedSpot(rowboatsWaiting);
-
-            assignLeft.GivePositions(otherBoatsWaiting);
-            assignRight.GivePositions(otherBoatsWaiting);
-
-            assignLeft.TryAddFromBottom(otherBoatsWaiting);
-
-            assignRight.TryAddFromBottom(otherBoatsWaiting);
-
-            //lägg ihop de som inte har blivit tilldelade en plats
-            otherBoatsWaiting.AddRange(rowboatsWaiting);
-            boatsRejected += otherBoatsWaiting.Count(boat => NotAssigned(boat));
+        static void TestOldSpots()
+        {
+            foreach (AssignHarbourSpot assigner in assigners)
+            {
+                assigner.TryOldSpots(waitingBoats);
+            }
+        }
 
 
+        static void AddRowBoats()
+        {
+            foreach(AssignHarbourSpot assigner in assigners)
+            {
+
+                assigner.GiveRowboatUnassignedSpot(rowboatsWaiting);
+            }
+        }
+
+        public static void OneDay(Harbour leftHarbour, Harbour rightHarbour)
+        {
+            rowboatsWaiting = waitingBoats.Where(boat => boat is Rowboat).ToList();
+            otherBoatsWaiting = waitingBoats.Where(boat => !(boat is Rowboat)).OrderBy(boat => boat.SizeInSpots).ToList();
+            waitingBoats.OrderBy(boat => boat.SizeInSpots);
+            //lägger till en dag på varje båt om det finns några i hamnen
             AddOneDay(leftHarbour);
             AddOneDay(rightHarbour);
 
-            //AddOneDay(leftHarbour);
-            //AddOneDay(rightHarbour);
+            //min hamn logik
+            //GetPositions();
+            //TryAssignRowboat();
+            //CombineUsedSpots();
+            //TryUsedSpots();
+            //AddFromBottom();
 
-            //TryToAddNewBoats(waitingBoats, leftHarbour, rightHarbour);
-            waitingBoats.Waiting.Clear();
-            AddToWaiting(waitingBoats);
-            ////ListEmptySpots(leftHarbour);
-            ////ListEmptySpots(rightHarbour);
-            BoatData.UpdateVisitors(waitingBoats.Waiting);
 
+
+
+
+            GetPositions();
+            CombineUsedSpots();
+            TestOldSpots();
+            AddRowBoats();
+            AddFromBottom();
+
+
+
+            //visa vilka båtar som inte fick plats och vilka det var
+            boatsRejected += waitingBoats.Count(NotAssigned);
+            boatsAccepted += numberOfNewBoats - waitingBoats.Count(NotAssigned);
+            if (!MainWindow.automatic)
+            {
+                ShowWho(waitingBoats.Where(boat => boat.AssignedSpotAtHarbour == null).ToList());
+            }
+
+
+            waitingBoats.Clear();
+            AddToWaiting();
+
+
+            //uppdatera datatabellerna
+            BoatData.UpdateVisitors(waitingBoats);
             UpdateData(leftHarbour);
             UpdateData(rightHarbour);
 
 
             daysPassed++;
+
+
+
+
+            //ListEmptySpots(leftHarbour);
+            //ListEmptySpots(rightHarbour);
+            //List<Boat> waiting = waitingBoats.Waiting;
+
+            //List<Boat> rowboatsWaiting = waiting.Where(boat => boat is Rowboat).ToList();
+            //List<Boat> otherBoatsWaiting = waiting.Where(boat => !(boat is Rowboat)).OrderBy(boat => boat.SizeInSpots).ToList();
+            //assignLeft = new AssignHarbourSpot(leftHarbour);
+            //assignLeft.GetPositions();
+            //assignRight = new AssignHarbourSpot(rightHarbour);
+            //assignRight.GetPositions();
+
+
+            //assignLeft.PlaceRowboat(rowboatsWaiting);
+            //assignRight.PlaceRowboat(rowboatsWaiting);
+
+            //assignLeft.MergePositions();
+            //assignRight.MergePositions();
+
+            //assignLeft.GiveRowboatUnassignedSpot(rowboatsWaiting);
+            //assignRight.GiveRowboatUnassignedSpot(rowboatsWaiting);
+
+            //assignLeft.GivePositions(otherBoatsWaiting);
+            //assignRight.GivePositions(otherBoatsWaiting);
+
+            //assignLeft.TryAddFromBottom(otherBoatsWaiting);
+
+            //assignRight.TryAddFromBottom(otherBoatsWaiting);
+
+
+
+            //AddOneDay(leftHarbour);
+            //AddOneDay(rightHarbour);
+
+            //TryToAddNewBoats(waitingBoats, leftHarbour, rightHarbour);
+            ////ListEmptySpots(leftHarbour);
+            ////ListEmptySpots(rightHarbour);
         }
 
         //static List<Boat> TryPlacingBoats(Harbour harbour, WaitingBoats waitingBoats, AssignHarbourSpot assign)
@@ -107,10 +242,19 @@ namespace HamnSimulering
         //    return harbour.HasFreeSpots(boat);
         //}
 
-        public static void AddToWaiting(WaitingBoats waitingBoats)
+        public static void AddToWaiting()
         {
-            waitingBoats.AddBoats(numberOfNewBoats);
-            BoatData.UpdateVisitors(waitingBoats.Waiting);
+            AddBoats(numberOfNewBoats);
+            BoatData.UpdateVisitors(waitingBoats);
+        }
+
+        public static void AddBoats(int numberOfBoats)
+        {
+            Func<Boat> generateBoat = new Func<Boat>(() => Generate.RandomBoat());
+            for (int i = 1; i <= numberOfBoats; i++)
+            {
+                waitingBoats.Add(generateBoat());
+            }
         }
 
 

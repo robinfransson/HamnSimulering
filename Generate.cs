@@ -19,59 +19,66 @@ namespace HamnSimulering
 
         public static Boat RandomBoat()
         {
+            Func<int, int, int> propertyRange = (min, max) => rand.Next(min, max + 1);
+            //Func<BoatType> selectRandomType = () => (BoatType)rand.Next(Enum.GetNames(typeof(BoatType)).Length);
+            //BoatType randomBoatType = selectRandomType();
             int topSpeedKnots;
             int weight;
             string ID;
             string prefix;
             int specialProperty;
-            string randomBoatType = Enum.GetName(typeof(BoatType), rand.Next(Enum.GetNames(typeof(BoatType)).Length));
+            BoatType randomBoatType = (BoatType)rand.Next(Enum.GetNames(typeof(BoatType)).Length);
             switch (randomBoatType)
             {
 
 
-                case "ROWBOAT":
+                case BoatType.ROWBOAT:
                     prefix = "R-";
                     ID = GenerateName(prefix);
-                    weight = rand.Next(100, 300 + 1);
-                    topSpeedKnots = rand.Next(0, 3 + 1); //upp till 3 knop, exclusive max därav +1
-                    specialProperty = rand.Next(1, 6 + 1); //antal passagerare i det här fallet
+                    weight = propertyRange(100, 300);
+                    topSpeedKnots = propertyRange(0, 3); //upp till 3 knop, exclusive max därav +1
+                    specialProperty = propertyRange(1, 6); //antal passagerare i det här fallet
                     return new Rowboat(ID, weight, topSpeedKnots, specialProperty);
 
 
-                case "MOTORBOAT":
+                case BoatType.MOTORBOAT:
                     prefix = "M-";
                     ID = GenerateName(prefix);
-                    weight = rand.Next(200, 3000 + 1);
-                    topSpeedKnots = rand.Next(0, 60 + 1); //upp till 60 knop
-                    specialProperty = rand.Next(10, 1000 + 1); //hästkrafter i det här fallet
+                    weight = propertyRange(200, 3000);
+                    topSpeedKnots = propertyRange(0, 60); //upp till 60 knop
+                    specialProperty = propertyRange(10, 1000); //hästkrafter i det här fallet
                     return new Motorboat(ID, weight, topSpeedKnots, specialProperty);
 
 
-                case "SAILBOAT":
+                case BoatType.SAILBOAT:
                     prefix = "S-";
                     ID = GenerateName(prefix);
-                    weight = rand.Next(800, 6000 + 1);
-                    topSpeedKnots = rand.Next(0, 12 + 1); //upp till 12 knop
-                    specialProperty = rand.Next(10, 60 + 1); //fot i det här fallet
+                    weight = propertyRange(800, 6000);
+                    topSpeedKnots = propertyRange(0, 12);
+                    specialProperty = propertyRange(10, 60); //fot i det här fallet
                     return new Sailboat(ID, weight, topSpeedKnots, specialProperty);
-                
-                
-                case "CARGOSHIP":
+
+
+                case BoatType.CARGOSHIP:
                     prefix = "L-";
                     ID = GenerateName(prefix);
-                    weight = rand.Next(3000, 20000 + 1);
-                    topSpeedKnots = rand.Next(0, 20 + 1); //upp till 20 knop
-                    specialProperty = rand.Next(0, 500 + 1); //hästkrafter i det här fallet
+                    weight = propertyRange(3000, 20000);
+                    topSpeedKnots = propertyRange(0, 20);
+                    specialProperty = propertyRange(0, 500); //hästkrafter i det här fallet
                     return new Cargoship(ID, weight, topSpeedKnots, specialProperty);
 
 
-                default: // catamaran
+
+                case BoatType.CATAMARAN:
                     prefix = "K-";
                     ID = GenerateName(prefix);
-                    topSpeedKnots = rand.Next(0, 12 + 1); //upp till 12 knop
-                    weight = rand.Next(1200, 8000 + 1); // exclusive max därav +1
-                    specialProperty = rand.Next(10, 1000 + 1); //hästkrafter i det här fallet
+                    topSpeedKnots = propertyRange(0, 12); //upp till 12 knop
+                    weight = propertyRange(1200, 8000); // exclusive max därav +1
+                    specialProperty = propertyRange(1, 4); //hästkrafter i det här fallet
                     return new Catamaran(ID, weight, topSpeedKnots, specialProperty);
+
+                default:
+                    throw new NotImplementedException("Not yet implemented!\n " + randomBoatType.ToString());
             }
         }
 

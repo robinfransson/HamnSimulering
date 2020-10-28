@@ -17,20 +17,18 @@ namespace HamnSimulering
     public partial class MainWindow : Window
     {
 
-
-        bool errorShown = false;
-        bool automatic = false;
+        public static bool automatic = false;
         Harbour leftHarbour = new Harbour("LeftHarbour");
         Harbour rightHarbour = new Harbour("RightHarbour");
-        WaitingBoats waitingBoats = new WaitingBoats();
+        List<Boat> waitingBoats;
         DispatcherTimer dispatcherTimer;
         int timerSeconds = 5;
         int timesSinceSave = 0;
-        static Func<List<Boat>, long> AverageWeight = (p) =>
+        static Func<List<Boat>, long> AverageWeight = (port) =>
         {
-            if (p.Any())
+            if (port.Any())
             {
-                return p.Sum(boat => boat.Weight) / p.Count;
+                return port.Sum(boat => boat.Weight) / port.Count;
             }
             else
             {
@@ -38,18 +36,31 @@ namespace HamnSimulering
             }
 
         };
-        Func<Harbour, string> HarbourInfo = (harb) =>
+
+        static Func<int, int, string> CalculatePercentage = (accepted, rejected) =>
+        {
+            try
+            {
+                int percent = accepted / rejected;
+                return $"{percent}";
+            }
+            catch(DivideByZeroException)
+            {
+                return "100%";
+            }
+        };
+        Func<List<Boat>, string> BoatStats = (port) =>
         {
             return
 
 
-            $"Roddbåtar: {harb.Port.Count(boat => boat is Rowboat)} \n" +
-            $"Motorbåtar: {harb.Port.Count(boat => boat is Motorboat)} \n" +
-            $"Segelbåtar: {harb.Port.Count(boat => boat is Sailboat)} \n" +
-            $"Katamaraner: {harb.Port.Count(boat => boat is Catamaran)} \n" +
-            $"Lastfartyg: {harb.Port.Count(boat => boat is Cargoship)} \n\n" +
-            $"Totalvikt: {harb.Port.Sum(boat => boat.Weight)}\n" +
-            $"Snittvikt: {AverageWeight(harb.Port)} \n";
+            $"Roddbåtar: {port.Count(boat => boat is Rowboat)} \n" +
+            $"Motorbåtar: {port.Count(boat => boat is Motorboat)} \n" +
+            $"Segelbåtar: {port.Count(boat => boat is Sailboat)} \n" +
+            $"Katamaraner: {port.Count(boat => boat is Catamaran)} \n" +
+            $"Lastfartyg: {port.Count(boat => boat is Cargoship)} \n\n" +
+            $"Totalvikt: {port.Sum(boat => boat.Weight)}\n" +
+            $"Snittvikt: {AverageWeight(port)} \n";
 
         };
 
@@ -83,7 +94,11 @@ namespace HamnSimulering
             Simulate.UpdateData(leftHarbour);
             Simulate.UpdateData(rightHarbour);
 
-            BoatData.UpdateVisitors(waitingBoats.Waiting);
+
+            Simulate.SetupAssigner(leftHarbour);
+            Simulate.SetupAssigner(rightHarbour);
+
+            BoatData.UpdateVisitors(waitingBoats);
             UpdateLabels();
 
 
@@ -91,9 +106,10 @@ namespace HamnSimulering
         }
         public void UpdateLabels()
         {
-            waitingBoatsLabel.Content = "Väntande båtar: " + waitingBoats.Waiting.Count();
+            waitingBoatsLabel.Content = "Väntande båtar: " + waitingBoats.Count();
             numberOfDaysLabel.Content = "Passerade dagar: " + Simulate.daysPassed;
             rejectedBoatsLabel.Content = "Avvisade båtar: " + Simulate.boatsRejected;
+            acceptedBoatsLabel.Content = "Antagna båtar: " + Simulate.boatsAccepted + $"  ({CalculatePercentage(Simulate.boatsAccepted, Simulate.boatsRejected)}";
 
             leftHarbourLabel.Content = "Antal båtar i hamnen: " + leftHarbour.Port.Count();
             leftHarbourSpotsLeftLabel.Content = "Lediga platser: " + leftHarbour.SpotsLeft;
@@ -104,8 +120,9 @@ namespace HamnSimulering
             rightHarbourSpotsLeftLabel.Content = "Lediga platser: " + rightHarbour.SpotsLeft;
 
 
-            rightHarbourLabel.ToolTip = HarbourInfo(rightHarbour);
-            leftHarbourLabel.ToolTip = HarbourInfo(leftHarbour);
+            rightHarbourLabel.ToolTip = BoatStats(rightHarbour.Port);
+            leftHarbourLabel.ToolTip = BoatStats(leftHarbour.Port);
+            waitingBoatsLabel.ToolTip = BoatStats(waitingBoats);
         }
 
 
@@ -115,7 +132,8 @@ namespace HamnSimulering
             {
                 leftHarbour.Port = SaveFileManager.Load("left.txt");
                 rightHarbour.Port = SaveFileManager.Load("right.txt");
-                waitingBoats.Waiting = SaveFileManager.Load("waiting.txt");
+                Simulate.waitingBoats = SaveFileManager.Load("waiting.txt");
+                waitingBoats = Simulate.waitingBoats;
 
                 if (leftHarbour.Port.Any())
                 {
@@ -132,14 +150,14 @@ namespace HamnSimulering
                         rightHarbour.UpdateSpots(boat);
                     }
                 }
-                if (!waitingBoats.Waiting.Any())
+                if (!waitingBoats.Any())
                 {
-                    Simulate.AddToWaiting(waitingBoats);
+                    Simulate.AddToWaiting();
                 }
 
-                BoatData.UpdateVisitors(waitingBoats.Waiting);
+                BoatData.UpdateVisitors(waitingBoats);
 
-                SaveFileManager.LoadStatistics("stats.txt", out Simulate.daysPassed, out Simulate.boatsRejected);
+                SaveFileManager.LoadStatistics("stats.txt", out Simulate.daysPassed, out Simulate.boatsRejected, out Simulate.boatsAccepted);
             }
             catch (Exception e)
             {
@@ -168,8 +186,13 @@ namespace HamnSimulering
 
         private void SimulateTimePassed()
         {
-            Simulate.OneDay(waitingBoats, leftHarbour, rightHarbour);
+            Simulate.OneDay(leftHarbour, rightHarbour);
             UpdateLabels();
+            timesSinceSave++;
+            if(timesSinceSave > 9)
+            {
+                Save();
+            }
         }
 
         private void ManualContinue_Click(object sender, RoutedEventArgs e)
@@ -178,17 +201,17 @@ namespace HamnSimulering
         }
 
 
-        private void Save(object sender, System.ComponentModel.CancelEventArgs e)
+        private void Save()
         {
             SaveFileManager.Save(leftHarbour.Port, "left.txt");
             SaveFileManager.Save(rightHarbour.Port, "right.txt");
-            SaveFileManager.Save(waitingBoats.Waiting, "waiting.txt");
-            SaveFileManager.SaveStatistics("stats.txt", Simulate.daysPassed, Simulate.boatsRejected);
+            SaveFileManager.Save(waitingBoats, "waiting.txt");
+            SaveFileManager.SaveStatistics("stats.txt", Simulate.daysPassed, Simulate.boatsRejected, Simulate.boatsAccepted);
         }
 
         private void saveButton_Click(object sender, RoutedEventArgs e)
         {
-            Save(sender, null);
+            Save();
         }
 
 
@@ -223,6 +246,13 @@ namespace HamnSimulering
 
                     timerSeconds = Int32.Parse(autoSpeedTextBox.Text);
                     dispatcherTimer.Interval = new TimeSpan(0, 0, timerSeconds);
+                    if(!automatic)
+                    {
+
+                        automatic = !automatic; //toggle
+                        manualContinue.IsEnabled = !automatic; // togglar manuella knappen
+                        dispatcherTimer.IsEnabled = automatic; // togglar timern
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -241,17 +271,22 @@ namespace HamnSimulering
 
                 leftHarbour = new Harbour("LeftHarbour");
                 rightHarbour = new Harbour("RightHarbour");
-                waitingBoats = new WaitingBoats();
+                Simulate.SetupAssigner(leftHarbour, true);
+                Simulate.SetupAssigner(rightHarbour, true);
+                Simulate.waitingBoats = new List<Boat>();
 
                 BoatData.ClearTable("LeftHarbour");
                 BoatData.ClearTable("RightHarbour");
                 BoatData.ClearTable("WaitingBoats");
 
 
-                Simulate.AddToWaiting(waitingBoats);
-                BoatData.UpdateVisitors(waitingBoats.Waiting);
+                Simulate.AddToWaiting();
+                BoatData.UpdateVisitors(waitingBoats);
                 Simulate.UpdateData(leftHarbour);
                 Simulate.UpdateData(rightHarbour);
+                Simulate.daysPassed = 0;
+                Simulate.boatsRejected = 0;
+
             }
         }
 
@@ -263,10 +298,30 @@ namespace HamnSimulering
             }
             else if (e.Column.Header.ToString() == "Båttyp")
             {
-                e.Column.Width = 100;
+                e.Column.Width = 65;
+            }
+            else if (e.Column.Header.ToString() == "Vikt")
+            {
+                e.Column.Width = 45;
+            }
+            else if (e.Column.Header.ToString() == "Nr")
+            {
+                e.Column.Width = 50;
+            }
+            else if (e.Column.Header.ToString() == "Dagar")
+            {
+                e.Column.Width = 50;
+            }
+            else if (e.Column.Header.ToString() == "Maxhast")
+            {
+                e.Column.Width = 60;
             }
         }
 
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            Save();
+        }
     }
 }
 

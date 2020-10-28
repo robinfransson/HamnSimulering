@@ -83,7 +83,7 @@ namespace HamnSimulering
             DataTable table = boatInfo.Tables[harbour.HarbourName];
             int currentSpot = 1;
             DataRow freeSpot;
-            foreach (bool spot in harbour.IsCurrentSpotTaken)
+            foreach (bool spot in harbour.SpotIsTaken)
             {
                 if (!spot && table.Select($"Plats = '{currentSpot}' AND Båttyp = 'Ledigt'").FirstOrDefault() == null)
                 {
@@ -102,7 +102,7 @@ namespace HamnSimulering
             DataTable table = boatInfo.Tables[harbour.HarbourName];
             int currentSpot = 1;
             DataRow freeSpot;
-            foreach (bool spot in harbour.IsCurrentSpotTaken)
+            foreach (bool spot in harbour.SpotIsTaken)
             {
                 if (!spot)
                 {
@@ -142,7 +142,7 @@ namespace HamnSimulering
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show(e.ToString());
+                    MessageBox.Show(e.ToString() + $"{boat.GetSpot} {boat.ModelID} {boat.GetBoatType()}");
                 }
             }
         }
@@ -158,7 +158,7 @@ namespace HamnSimulering
             }
             catch (Exception e)
             {
-                MessageBox.Show(e.Message);
+                MessageBox.Show(e.Message + $"{boat.GetSpot} {boat.ModelID} {boat.GetBoatType()}");
             }
         }
 

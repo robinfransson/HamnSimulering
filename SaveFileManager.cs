@@ -11,6 +11,8 @@ namespace HamnSimulering
 {
     class SaveFileManager
     {
+
+
         public static void Save(List<Boat> boats, string fileName)
         {
             File.WriteAllLines(fileName, DataToStore(boats));
@@ -48,10 +50,11 @@ namespace HamnSimulering
 
 
 
-        public static void LoadStatistics(string fileName, out int daysPassed, out int boatsRejected)
+        public static void LoadStatistics(string fileName, out int daysPassed, out int boatsRejected, out int boatsAccepted)
         {
             daysPassed = 0;
             boatsRejected = 0;
+            boatsAccepted = 0;
             if (File.Exists(fileName))
             {
                 foreach (string line in File.ReadAllLines(fileName))
@@ -64,6 +67,10 @@ namespace HamnSimulering
                     else if (saveInfo[0] == "boats rejected")
                     {
                         boatsRejected = Int32.Parse(saveInfo[1]);
+                    }
+                    else if (saveInfo[0] == "boats accepted")
+                    {
+                        boatsAccepted = Int32.Parse(saveInfo[1]);
                     }
                 }
             }
@@ -80,8 +87,9 @@ namespace HamnSimulering
                     'M' => new Motorboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
                     'S' => new Sailboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
                     'L' => new Cargoship(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
+                    'K' => new Catamaran(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
                     //default
-                    _ => new Catamaran(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
+                    _ => throw new NotImplementedException("Unsupported boattype! Model: " + id),
                 };
             };
 
@@ -169,9 +177,9 @@ namespace HamnSimulering
             return saveData;
         }
 
-        public static void SaveStatistics(string fileName, int daysPassed, int boatsRejected)
+        public static void SaveStatistics(string fileName, int daysPassed, int boatsRejected, int boatsAccepted)
         {
-            string statsToSave = $"days passed={daysPassed}\nboats rejected={boatsRejected}";
+            string statsToSave = $"days passed={daysPassed}\nboats rejected={boatsRejected}\nboats accepted={boatsAccepted}";
             File.WriteAllText(fileName, statsToSave);
         }
     }

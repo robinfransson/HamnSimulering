@@ -13,6 +13,13 @@ namespace HamnSimulering
         List<int[]> mergedPositions = new List<int[]>();
         List<int[]> positions = new List<int[]>();
         Harbour harbour;
+        public string AssignedHarbour
+        {
+            get
+            {
+                return harbour.HarbourName;
+            }
+        }
 
         bool showMessages = false;
 
@@ -40,9 +47,9 @@ namespace HamnSimulering
         List<int[]> FixPositions(List<int[]> positionsBeforeFix)
         {
             List<int[]> fixedPositions = new List<int[]>();
-            foreach(var pos in positionsBeforeFix)
+            foreach (var pos in positionsBeforeFix)
             {
-                if(pos.Length < 2)
+                if (pos.Length < 2)
                 {
                     fixedPositions.Add(new int[2] { pos[0], pos[0] });
                 }
@@ -64,28 +71,33 @@ namespace HamnSimulering
         /// </summary>
         public void MergePositions()
         {
+            //räknar helt enkelt ut hur mycket större det ena talet är, för att sedan sortera dom i storleksordning
+            Func<int[], int> distanceBetweenNumbers = (values) =>
+            {
+                return values[1] - values[0];
+            };
             int[] prevValue = null;
             foreach (int[] nextValue in positions)
             {
-                int[] fixedValue = null;
                 if (prevValue is null)
                 {
                     prevValue = nextValue;
                     mergedPositions.Add(prevValue);
                     continue;
                 }
-                fixedValue = VerifyRange(prevValue, nextValue);
-                 
+                prevValue = mergedPositions.LastOrDefault();
+                int[] fixedValue = VerifyRange(prevValue, nextValue);
 
 
 
-                int[] previousMax = mergedPositions.LastOrDefault();
-                if (previousMax != null && previousMax[0] == fixedValue[0])
+
+                if (prevValue != null && prevValue[0] == fixedValue[0])
                 {
-                    mergedPositions.Remove(previousMax);
+                    mergedPositions.Remove(prevValue);
                 }
                 mergedPositions.Add(fixedValue);
             }
+            mergedPositions.OrderBy(distanceBetweenNumbers);
         }
 
 
@@ -95,8 +107,8 @@ namespace HamnSimulering
 
         int[] VerifyRange(int[] prevValue, int[] nextValue)
         {
-            
-                return prevValue[1] + 1 == nextValue[0] ? CombinePositions(prevValue[0], nextValue[1]) : nextValue;
+
+            return prevValue[1] + 1 == nextValue[0] ? CombinePositions(prevValue[0], nextValue[1]) : nextValue;
         }
 
         int[] CombinePositions(int startValue, int endValue)
@@ -106,8 +118,97 @@ namespace HamnSimulering
 
 
 
+        public void TryOldSpots(List<Boat> boats)
+        {
+            Func<int, int, bool> AllSpotsFree = (start, boatSize) =>
+            {
+                int end = start + boatSize;
+                if(end > harbour.SpotIsTaken.GetUpperBound(0))
+                {
+                    return false;
+                }
+                for(int i = start; i <= end; i++)
+                {
+                    if(harbour.SpotIsTaken[i] == true)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            };
 
 
+
+            foreach (int[] position in mergedPositions)
+            {
+                int max = position[1];
+                foreach (Boat boat in boats)
+                {
+                    if (boat.AssignedSpotAtHarbour != null)
+                    {
+                        continue;
+                    }
+                    int start = position[0];
+
+                    int boatSize = (int)boat.SizeInSpots - 1;
+                    if (start > max || !AllSpotsFree(start, boatSize) || start + boatSize > max)
+                    {
+                        break;
+                    }
+
+
+                    int rowboatsOnSpot = harbour.Port.Count(row => row.AssignedSpotAtHarbour[0] == start && row is Rowboat);
+                    int rowboatsLeftToAssign = boats.Count(boat => boat is Rowboat && boat.AssignedSpotAtHarbour == null);
+
+
+
+
+
+
+                    if (boat is Rowboat && rowboatsOnSpot == 1 || !harbour.SpotIsTaken[start] && boat is Rowboat)
+                    {
+                        //hur många roddbåtar som det är kvar och hur många det är på platsen, är det 
+                        //redan en roddbåt på platsen ska nästa båt försöka klämma sig in
+                        //från nästa plats och är det här den sista ska samma sak ske
+                        position[0] += rowboatsOnSpot == 1 || rowboatsLeftToAssign == 1 ? 1 : 0;
+                        boat.AssignedSpotAtHarbour = new int[1] { start };
+                        harbour.AddBoat(boat);
+                        continue;
+                    }
+
+
+                    else if (harbour.SpotIsTaken[start])
+                    {
+                        position[0]++;
+                        continue;
+                    }
+
+
+
+                    else if (boat is Motorboat)
+                    {
+                        boat.AssignedSpotAtHarbour = new int[1] { start };
+                        position[0]++;
+                        harbour.AddBoat(boat);
+                        continue;
+                    }
+
+
+
+                    else
+                    {
+                        int newMinimum = start + boatSize;
+                        boat.AssignedSpotAtHarbour = new int[2] { start, newMinimum };
+                        position[0] = newMinimum;
+                        harbour.AddBoat(boat);
+                        continue;
+
+                    }
+                }
+            }
+
+
+        }
 
 
         /// <summary>
@@ -121,39 +222,46 @@ namespace HamnSimulering
         /// <returns></returns>
         public void GiveRowboatUnassignedSpot(List<Boat> rowboats)
         {
+
+            //TryOldSpots(rowboats);
             int currentSpot = 0;
-            foreach (Boat rowboat in rowboats)
+
+            while (harbour.SpotsLeft > 0 && rowboats.Any())
             {
-                if (rowboat.AssignedSpotAtHarbour != null)
+                foreach (Boat rowboat in rowboats)
                 {
-                    continue;
+                    if (rowboat.AssignedSpotAtHarbour != null)
+                    {
+                        continue;
+                    }
+                    int rowboatsOnSpot = harbour.Port.Count(row => row.AssignedSpotAtHarbour[0] == currentSpot && row is Rowboat);
+
+                    if (rowboatsOnSpot == 1 || !harbour.SpotIsTaken[currentSpot])
+                    {
+                        rowboat.AssignedSpotAtHarbour = new int[1] { currentSpot };
+                        harbour.AddBoat(rowboat);
+                        continue;
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
-
-
-
-                int rowboatsOnSpot = harbour.Port.Count(row => row.AssignedSpotAtHarbour[0] == currentSpot && row is Rowboat);
-
-                if (rowboatsOnSpot == 1 || !harbour.IsCurrentSpotTaken[currentSpot])
+                currentSpot++;
+                if (currentSpot > harbour.SpotIsTaken.GetUpperBound(0))
                 {
-                    rowboat.AssignedSpotAtHarbour = new int[1] { currentSpot };
-                    harbour.AddBoat(rowboat);
-                    continue;
+                    break;
                 }
                 else
                 {
-                    currentSpot++;
-                }
-
-                if (rowboat.AssignedSpotAtHarbour == null)
-                {
-                    CouldNotGetASpot(rowboat, "Give rowboat unassigned spot");
+                    rowboats = rowboats.Where(rowboat => rowboat.AssignedSpotAtHarbour == null).ToList();
                 }
             }
         }
 
 
         /// <summary>
-        /// places a rowboat next to another, if there are any, else it doesnt do ano
+        /// places a rowboat next to another, if there are any, else it doesnt do anything
         /// </summary>
         /// <param name="rowboats"></param>
         /// <param name="harbour"></param>
@@ -164,10 +272,6 @@ namespace HamnSimulering
             {
                 foreach (Boat rowboat in rowboats)
                 {
-                    if(dockedRowboat.AssignedSpotAtHarbour.Length > 1)
-                    {
-
-                    }
                     if (rowboat.AssignedSpotAtHarbour != null)
                     {
                         continue;
@@ -180,23 +284,27 @@ namespace HamnSimulering
                         harbour.AddBoat(rowboat);
                         break;
                     }
-                    
 
-                    if (rowboat.AssignedSpotAtHarbour == null)
-                    {
-                        CouldNotGetASpot(rowboat, "Give rowboat spot from another that left");
-                    }
                 }
 
                 List<int[]> rowboatAssigned = rowboats.Where(boat => boat.AssignedSpotAtHarbour != null).Select(value => value.AssignedSpotAtHarbour).ToList();
                 foreach (int[] spot in rowboatAssigned)
                 {
-                    positions.Remove(spot);
+                    //har fixat till alla positioner till 2 index, så här behövs det skapas en ny array
+                    //med samma layout
+                    int[] toRemove = new int[2] { spot[0], spot[0] };
+                    positions.Remove(toRemove);
                     //mergedPositions.Remove(spot);
                 }
 
             }
         }
+
+
+
+
+
+
         /// <summary>
         /// försöker ge redan använda platser till de nya båtarna (utom roddbåt)
         /// </summary>
@@ -218,8 +326,10 @@ namespace HamnSimulering
                     {
                         break;
                     }
+
+
                     int start = position[0];
-                    if(harbour.IsCurrentSpotTaken[start])
+                    if (harbour.SpotIsTaken[start])
                     {
                         position[0]++;
                         continue;
@@ -235,15 +345,9 @@ namespace HamnSimulering
                     else
                     {
                         int boatSize = (int)boat.SizeInSpots - 1;
-                        if(start + boatSize > max && mergedPositions.LastOrDefault() == position)
-                        {
 
-                            CouldNotGetASpot(boat, $"Reused spot from other boat last tried was ({start}, {max})");
-                            break;
-                        }
-                        else if (start + boatSize > max)
+                        if (start + boatSize > max)
                         {
-
                             break;
                         }
                         else
@@ -258,12 +362,12 @@ namespace HamnSimulering
             }
         }
 
-            /// <summary>
-            ///   returns a list of boats without an assigned spot
-            /// </summary>
-            /// <param name="boats"></param>
-            /// <param name="harbour"></param>
-            /// <returns></returns>
+        /// <summary>
+        /// Lägger till båtarna nerifrån
+        /// </summary>
+        /// <param name="boats"></param>
+        /// <param name="harbour"></param>
+        /// <returns></returns>
         public void TryAddFromBottom(List<Boat> boats)
         {
             //t.ex en segelbåt ska ha 2 platser, plats 1 och 2, 2 - (antal platser den ska ha (2)) = 0; 0,1,2 blir 3 platser, därför tar jag bort 1 så det blir 1,2
@@ -273,17 +377,20 @@ namespace HamnSimulering
                 {
                     continue;
                 }
+
+
+
                 int spotsToTake = (int)boat.SizeInSpots;
-                int currentSpot = harbour.IsCurrentSpotTaken.GetUpperBound(0);
+                int currentSpot = harbour.SpotIsTaken.GetUpperBound(0);
                 int spotsFound = 0;
 
                 for (int i = currentSpot; i >= 0; i--)
                 {
-                    bool spotTaken = harbour.IsCurrentSpotTaken[i];
+                    bool spotTaken = harbour.SpotIsTaken[i];
                     if (spotTaken)
                     {
                         spotsFound = 0;
-                        currentSpot--;
+                        currentSpot--;//platsen var upptagen
                         continue;
                     }
                     else
@@ -296,15 +403,12 @@ namespace HamnSimulering
                     {
                         int start = currentSpot;
                         int end = (currentSpot + spotsToTake) - 1;
-                        boat.AssignedSpotAtHarbour = new int[2] { start, end };
+
+                        boat.AssignedSpotAtHarbour = boat is Motorboat ? new int[1] { start } : new int[2] { start, end };
                         harbour.AddBoat(boat);
                         break;
                     }
                     currentSpot--;
-                }
-                if (boat.AssignedSpotAtHarbour == null)
-                {
-                    CouldNotGetASpot(boat, "Add from bottom");
                 }
             }
         }
@@ -327,10 +431,10 @@ namespace HamnSimulering
         {
             foreach (Boat boat in boats)
             {
-                int spotsToTake = (int)boat.SizeInSpots - 1;
+                int spotsToTake = (int)boat.SizeInSpots;
                 int currentSpot = 0;
                 int spotsFound = 0;
-                foreach (bool spotTaken in harbour.IsCurrentSpotTaken)
+                foreach (bool spotTaken in harbour.SpotIsTaken)
                 {
                     if (spotTaken)
                     {
@@ -354,8 +458,5 @@ namespace HamnSimulering
                 }
             }
         }
-
-
-
     }
 }
