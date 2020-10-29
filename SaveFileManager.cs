@@ -50,11 +50,12 @@ namespace HamnSimulering
 
 
 
-        public static void LoadStatistics(string fileName, out int daysPassed, out int boatsRejected, out int boatsAccepted)
+        public static void LoadStatistics(string fileName, out int daysPassed, out int boatsRejected, out int boatsAccepted, out int boatsPerDay)
         {
             daysPassed = 0;
             boatsRejected = 0;
             boatsAccepted = 0;
+            boatsPerDay = 0;
             if (File.Exists(fileName))
             {
                 foreach (string line in File.ReadAllLines(fileName))
@@ -72,6 +73,10 @@ namespace HamnSimulering
                     {
                         boatsAccepted = Int32.Parse(saveInfo[1]);
                     }
+                    else if (saveInfo[0] == "boats per day")
+                    {
+                        boatsPerDay = Int32.Parse(saveInfo[1]);
+                    }
                 }
             }
         }
@@ -80,8 +85,8 @@ namespace HamnSimulering
         {
             Func<string, int, int, int, int, int[], Boat> addBoat = (id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken) =>
             {
-
-                return (id[0]) switch //första bokstaven i modell id
+                char boatModel = id[0];//första bokstaven i modell id
+                return (boatModel) switch 
                 {
                     'R' => new Rowboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
                     'M' => new Motorboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
@@ -133,7 +138,7 @@ namespace HamnSimulering
             {
                 char dataSeparator = ';';
                 string boatData = "";
-                int? numberOfSpots = boat.AssignedSpotAtHarbour?.Length;
+                int? numberOfSpots = boat.AssignedSpot?.Length;
                  
                 //generell info om båtarna först, sedan tas varje "special" property ut och läggs till på slutet av strängen
                 boatData += $"{boat.ModelID}" + dataSeparator;
@@ -163,10 +168,10 @@ namespace HamnSimulering
                 switch(numberOfSpots) //längden av arrayen där platserna sparas
                 {
                     case 1:
-                        boatData += dataSeparator + $"{boat.AssignedSpotAtHarbour[0]}";
+                        boatData += dataSeparator + $"{boat.AssignedSpot[0]}";
                         break;
                     case 2:
-                        boatData += dataSeparator + $"{boat.AssignedSpotAtHarbour[0]}-{boat.AssignedSpotAtHarbour[1]}";
+                        boatData += dataSeparator + $"{boat.AssignedSpot[0]}-{boat.AssignedSpot[1]}";
                         break;
                     default:
                         break;
@@ -177,9 +182,9 @@ namespace HamnSimulering
             return saveData;
         }
 
-        public static void SaveStatistics(string fileName, int daysPassed, int boatsRejected, int boatsAccepted)
+        public static void SaveStatistics(string fileName, int daysPassed, int boatsRejected, int boatsAccepted, int boatsPerDay)
         {
-            string statsToSave = $"days passed={daysPassed}\nboats rejected={boatsRejected}\nboats accepted={boatsAccepted}";
+            string statsToSave = $"days passed={daysPassed}\nboats rejected={boatsRejected}\nboats accepted={boatsAccepted}\nboats per day={boatsPerDay}";
             File.WriteAllText(fileName, statsToSave);
         }
     }

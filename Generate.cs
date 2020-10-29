@@ -19,15 +19,16 @@ namespace HamnSimulering
 
         public static Boat RandomBoat()
         {
+
+            //BoatType randomBoatType = (BoatType)rand.Next(Enum.GetNames(typeof(BoatType)).Length);
             Func<int, int, int> propertyRange = (min, max) => rand.Next(min, max + 1);
-            //Func<BoatType> selectRandomType = () => (BoatType)rand.Next(Enum.GetNames(typeof(BoatType)).Length);
-            //BoatType randomBoatType = selectRandomType();
+            Func<BoatType> selectRandomType = () => (BoatType)rand.Next(Enum.GetNames(typeof(BoatType)).Length);
+            BoatType randomBoatType = selectRandomType();
             int topSpeedKnots;
             int weight;
             string ID;
             string prefix;
             int specialProperty;
-            BoatType randomBoatType = (BoatType)rand.Next(Enum.GetNames(typeof(BoatType)).Length);
             switch (randomBoatType)
             {
 
@@ -74,7 +75,7 @@ namespace HamnSimulering
                     ID = GenerateName(prefix);
                     topSpeedKnots = propertyRange(0, 12); //upp till 12 knop
                     weight = propertyRange(1200, 8000); // exclusive max därav +1
-                    specialProperty = propertyRange(1, 4); //hästkrafter i det här fallet
+                    specialProperty = propertyRange(1, 4); //sängplatser i det här fallet
                     return new Catamaran(ID, weight, topSpeedKnots, specialProperty);
 
                 default:
@@ -87,7 +88,7 @@ namespace HamnSimulering
             char[] allowedLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
             for (int i = 0; i < 3; i++)
             {
-                int index = rand.Next(0, allowedLetters.GetUpperBound(0)+1);
+                int index = rand.Next(0, allowedLetters.GetUpperBound(0) + 1);
                 prefix += allowedLetters[index];
             }
             return prefix;

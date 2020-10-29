@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Xml;
-using System.Linq;
-using System.CodeDom;
 
 namespace HamnSimulering
 {
@@ -18,11 +13,16 @@ namespace HamnSimulering
             else if (this is Motorboat motorboat) return $"{motorboat.Horsepowers} hästkrafter";
             else throw new NotImplementedException("Unsupported boat type: " +this.GetType());
         };
-        public int[] AssignedSpotAtHarbour { get; set; }
-        public Func<string> GetSpot => () =>
-        {
-            return AssignedSpotAtHarbour.Length < 2 ? $"{AssignedSpotAtHarbour[0] + 1}" : $"{AssignedSpotAtHarbour[0] + 1}-{AssignedSpotAtHarbour[1] + 1}";
-            };
+        public int[] AssignedSpot { get; set; }
+        public string GetSpot 
+        { 
+            get
+            {
+                return AssignedSpot.Length < 2 ? $"{AssignedSpot[0] + 1}" : $"{AssignedSpot[0] + 1}-{AssignedSpot[1] + 1}";
+            }
+        }
+
+
         public float SizeInSpots { get; set; }
         public string ModelID { get; set; }
         public int DaysSpentAtHarbour { get; set; }
@@ -48,7 +48,7 @@ namespace HamnSimulering
 
         public Boat(string id, int weight, int topSpeedKnots, int daysSpent = 0, int[] spots = null)
         {
-            AssignedSpotAtHarbour = spots;
+            AssignedSpot = spots;
             DaysSpentAtHarbour = daysSpent;
             ModelID = id;
             Weight = weight;
