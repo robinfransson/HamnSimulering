@@ -14,14 +14,14 @@ namespace HamnSimulering
     {
 
         public static bool automatic = false;
-        Harbour leftHarbour = new Harbour("LeftHarbour");
-        Harbour rightHarbour = new Harbour("RightHarbour");
+        Port leftPort;
+        Port rightPort;
         List<Boat> waitingBoats;
-        DispatcherTimer dispatcherTimer;
+        DispatcherTimer automaticTimer;
         int timerSeconds = 5;
         int timerMilliseconds = 0;
         int timesSinceSave = 0;
-
+        Harbour harbour;
 
         /// <summary>
         /// Räknar ut medelvikten av alla båtar i listan.
@@ -42,11 +42,14 @@ namespace HamnSimulering
 
         /// <summary>
         /// Får ta in antalen som float för att kunna dividera dom direkt.
+        /// (formel (x/(x+y)*100)
         /// </summary>
         Func<float, float, double> calculatePercentage = (ofTotal, ammount) =>
         {
             float p = (ofTotal / (ammount + ofTotal))*100;
             float percent = 100 - p;
+
+            //returnerar en double för att Math.Round gör det
             return Math.Round(percent, 1);
 
         };
@@ -77,31 +80,38 @@ namespace HamnSimulering
             InitializeComponent();
 
 
+            leftPort = new Port("LeftPort");
+            rightPort = new Port("RightPort");
             SetupAutomatic();
-            BoatData.SetupDataTables();
+
+            BoatData.Port_SetupDataTable(leftPort);
+            BoatData.Port_SetupDataTable(rightPort);
+            BoatData.Waiting_SetupDataTable();
+
+            leftPortGrid.ItemsSource = BoatData.BoatDataViewer(leftPort.Name);
+            leftPortGrid.RowHeight = 17;
+            leftPortGrid.IsReadOnly = true;
 
 
-            leftHarbourGrid.ItemsSource = BoatData.BoatDataViewer("LeftHarbour");
-            leftHarbourGrid.RowHeight = 17;
-            rightHarbourGrid.ItemsSource = BoatData.BoatDataViewer("RightHarbour");
-            rightHarbourGrid.RowHeight = 17;
+            rightPortGrid.ItemsSource = BoatData.BoatDataViewer(rightPort.Name);
+            rightPortGrid.RowHeight = 17;
+            rightPortGrid.IsReadOnly = true;
+
+
             waitingBoatsGrid.ItemsSource = BoatData.BoatDataViewer("WaitingBoats");
-
-
-            leftHarbourGrid.IsReadOnly = true;
-            rightHarbourGrid.IsReadOnly = true;
             waitingBoatsGrid.IsReadOnly = true;
 
 
 
 
             LoadSaveFiles();
-            Simulate.UpdateData(leftHarbour);
-            Simulate.UpdateData(rightHarbour);
 
+            BoatData.Update(leftPort);
+            BoatData.Update(rightPort);
+            harbour = Simulate.harbour;
 
-            Simulate.SetupAssigner(leftHarbour);
-            Simulate.SetupAssigner(rightHarbour);
+            harbour.AddPort(leftPort);
+            harbour.AddPort(rightPort);
 
             BoatData.UpdateVisitors(waitingBoats);
             UpdateLabels();
@@ -129,22 +139,27 @@ namespace HamnSimulering
         {
             var percentRejected = calculatePercentage(Simulate.boatsAccepted, Simulate.boatsRejected);
             var percentAccepted = calculatePercentage(Simulate.boatsRejected, Simulate.boatsAccepted);
+
+
             UpdateWaitingBoats();
+
+
+
             numberOfDaysLabel.Content = "Passerade dagar: " + Simulate.daysPassed;
             rejectedBoatsLabel.Content = "Avvisade båtar: " + Simulate.boatsRejected + $"  ({percentRejected}%)";
             acceptedBoatsLabel.Content = "Antagna båtar: " + Simulate.boatsAccepted + $"  ({percentAccepted}%)";
 
-            leftHarbourLabel.Content = "Antal båtar i hamnen: " + leftHarbour.Port.Count();
-            leftHarbourSpotsLeftLabel.Content = "Lediga platser: " + leftHarbour.SpotsLeft;
+            leftPortBoatsLabel.Content = "Antal båtar i hamnen: " + leftPort.Boats.Count();
+            leftPortSpotsRemainingLabel.Content = "Lediga platser: " + leftPort.SpotsLeft;
 
-            leftHarbourLabel.ToolTip = boatStats(leftHarbour.Port);
-
-
-            rightHarbourLabel.Content = "Antal båtar i hamnen: " + rightHarbour.Port.Count();
-            rightHarbourSpotsLeftLabel.Content = "Lediga platser: " + rightHarbour.SpotsLeft;
+            leftPortBoatsLabel.ToolTip = boatStats(leftPort.Boats);
 
 
-            rightHarbourLabel.ToolTip = boatStats(rightHarbour.Port);
+            rightPortBoatsLabel.Content = "Antal båtar i hamnen: " + rightPort.Boats.Count();
+            rightPortSpotsRemainingLabel.Content = "Lediga platser: " + rightPort.SpotsLeft;
+
+
+            rightPortBoatsLabel.ToolTip = boatStats(rightPort.Boats);
         }
 
 
@@ -152,23 +167,23 @@ namespace HamnSimulering
         {
             try
             {
-                leftHarbour.Port = SaveFileManager.Load("left.txt");
-                rightHarbour.Port = SaveFileManager.Load("right.txt");
+                leftPort.Boats = SaveFileManager.Load("left.txt");
+                rightPort.Boats = SaveFileManager.Load("right.txt");
                 Simulate.waitingBoats = SaveFileManager.Load("waiting.txt");
                 waitingBoats = Simulate.waitingBoats;
 
                 
                 
-                if (leftHarbour.Port.Any())
+                if (leftPort.Boats.Any())
                 {
-                    leftHarbour.UpdateSpots();
+                    leftPort.UpdateSpots();
                 }
 
 
 
-                if (rightHarbour.Port.Any())
+                if (rightPort.Boats.Any())
                 {
-                    rightHarbour.UpdateSpots();
+                    rightPort.UpdateSpots();
                 }
 
 
@@ -202,7 +217,7 @@ namespace HamnSimulering
                     timerMilliseconds *= splitTime[1].Length == 1 ? 100 : splitTime[1].Length == 2 ? 10 : 1;
                 }
                 timerSeconds = timerSeconds == 0 && timerMilliseconds == 0 ? 1 : timerSeconds;
-                dispatcherTimer.Interval = new TimeSpan(0, 0, 0, timerSeconds, timerMilliseconds);
+                automaticTimer.Interval = new TimeSpan(0, 0, 0, timerSeconds, timerMilliseconds);
             }
             catch (Exception ex)
             {
@@ -222,28 +237,25 @@ namespace HamnSimulering
 
                     automatic = !automatic; //toggle
                     manualContinue.IsEnabled = !automatic; // togglar manuella knappen
-                    dispatcherTimer.IsEnabled = automatic; // togglar timern
+                    automaticTimer.IsEnabled = automatic; // togglar timern
                 }
             }
      
 
         void SetupAutomatic()
         {
-            toggleAuto.ToolTip = "Klicka en gång för att starta, om du ändrar hastigheten kan du\n" +
-                "trycka enter när du skrivit klart eller trycka på knappen igen.\n" +
-                "Vill du stänga av auto får du trycka 2 gånger om du har\n" +
-                "ändrat värdet.";
-            dispatcherTimer = new DispatcherTimer();
-            dispatcherTimer.Tick += (sender, eventArgs) =>
+            toggleAuto.ToolTip = "För att ändra värdet: skriv nedan och avsluta med enter.";
+            automaticTimer = new DispatcherTimer();
+            automaticTimer.Tick += (sender, eventArgs) =>
             {
                 SimulateTimePassed();
             };
-            dispatcherTimer.Interval = new TimeSpan(0, 0, 0, timerSeconds, timerMilliseconds);
+            automaticTimer.Interval = new TimeSpan(0, 0, 0, timerSeconds, timerMilliseconds);
         }
 
         private void SimulateTimePassed()
         {
-            Simulate.OneDay(leftHarbour, rightHarbour);
+            Simulate.OneDay();
             UpdateLabels();
             timesSinceSave++;
             if(timesSinceSave > 30)
@@ -260,8 +272,8 @@ namespace HamnSimulering
 
         private void Save()
         {
-            SaveFileManager.Save(leftHarbour.Port, "left.txt");
-            SaveFileManager.Save(rightHarbour.Port, "right.txt");
+            SaveFileManager.Save(leftPort.Boats, "left.txt");
+            SaveFileManager.Save(rightPort.Boats, "right.txt");
             SaveFileManager.Save(waitingBoats, "waiting.txt");
             SaveFileManager.SaveStatistics("stats.txt", Simulate.daysPassed, Simulate.boatsRejected, Simulate.boatsAccepted, Simulate.boatsPerDay);
         }
@@ -301,6 +313,7 @@ namespace HamnSimulering
             if (e.Key == System.Windows.Input.Key.Enter)
             {
                 AutoToggleOrChangeSpeed(sender);
+                //rensar fokusen från textboxen
                 System.Windows.Input.Keyboard.ClearFocus();
             }
 
@@ -313,21 +326,30 @@ namespace HamnSimulering
             {
                 SaveFileManager.DeleteSaves();
 
-                leftHarbour = new Harbour("LeftHarbour");
-                rightHarbour = new Harbour("RightHarbour");
-                Simulate.SetupAssigner(leftHarbour, true);
-                Simulate.SetupAssigner(rightHarbour, true);
+
+                harbour.RemovePort(leftPort);
+                harbour.RemovePort(rightPort);
+
+                leftPort = new Port("LeftPort");
+                rightPort = new Port("RightPort");
+
+
+                harbour.AddPort(leftPort);
+                harbour.AddPort(rightPort);
+
                 Simulate.ClearWaiting();
                 UpdateWaitingBoats();
-                BoatData.ClearTable("LeftHarbour");
-                BoatData.ClearTable("RightHarbour");
+
+
+                BoatData.ClearTable("LeftPort");
+                BoatData.ClearTable("RightPort");
                 BoatData.ClearTable("WaitingBoats");
 
 
                 Simulate.AddToWaiting();
                 BoatData.UpdateVisitors(waitingBoats);
-                Simulate.UpdateData(leftHarbour);
-                Simulate.UpdateData(rightHarbour);
+                BoatData.Update(leftPort);
+                BoatData.Update(rightPort);
                 Simulate.daysPassed = 0;
                 Simulate.boatsRejected = 0;
                 Simulate.boatsAccepted = 0;
@@ -337,6 +359,8 @@ namespace HamnSimulering
 
         private void HarbourGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
+
+            //hårdkodade kolumnstorlekar
             if (e.Column.Header.ToString() == "Plats")
             {
                 e.Column.Width = 40;

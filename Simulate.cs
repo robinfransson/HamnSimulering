@@ -4,14 +4,16 @@ using System.Text;
 using System.Linq;
 using System.Windows;
 using System.CodeDom;
+using System.Windows.Threading;
 
 namespace HamnSimulering
 {
     class Simulate
     {
-        static List<Assigner> assigners = new List<Assigner>();
+        public static Harbour harbour = new Harbour();
         public static List<Boat> waitingBoats = new List<Boat>();
 
+        DispatcherTimer automaticTimer;
         public static int boatsRejected = 0;
         public static int boatsAccepted = 0;
         public static int daysPassed = 0;
@@ -25,7 +27,7 @@ namespace HamnSimulering
             {
                 foreach (Boat boat in boats)
                 {
-                    info += $"{boat.GetBoatType()} {boat.ModelID} ({boat.SizeInSpots}) did not fit!\n";
+                    info += $"{boat.GetBoatType()} {boat.ModelID} (size {boat.Size} spots) did not fit!\n";
                 }
                 MessageBox.Show(info);
             }
@@ -33,29 +35,33 @@ namespace HamnSimulering
 
 
 
-        public static void OneDay(Harbour leftHarbour, Harbour rightHarbour)
+        public static void SetAutoTimerSpeed(int seconds, int milliseconds)
+        {
+
+        }
+
+        public static void OneDay()
         {
             rowboatsWaiting = waitingBoats.Where(boat => boat is Rowboat).ToList();
-            otherBoatsWaiting = waitingBoats.Where(boat => !(boat is Rowboat)).OrderBy(boat => boat.SizeInSpots).ToList();
-            waitingBoats.OrderBy(boat => boat.SizeInSpots);
-
-
-
-            //lägger till en dag på varje båt om det finns några i hamnen
-            AddOneDay(leftHarbour);
-            AddOneDay(rightHarbour);
-
-
-            GetPositions();
-
-
-            TestOldSpots();
-
-            AddRowBoats();
+            otherBoatsWaiting = waitingBoats.Where(boat => !(boat is Rowboat)).OrderBy(boat => boat.Size).ToList();
             
-            AddFromBottom();
+
+
+
+            //lägger till en dag på varje båt om det finns några vid kajen
+            harbour.AddOneDay();
+
+
+            harbour.GetPositions();
+
+
+            harbour.TestOldSpots(waitingBoats);
+
+            harbour.AddRowBoats(rowboatsWaiting);
             
-            ClearAssignerPositions();
+            harbour.AddFromBottom(otherBoatsWaiting);
+            
+            harbour.ClearPositions();
 
 
 
@@ -74,7 +80,7 @@ namespace HamnSimulering
             AddToWaiting();
 
             ///////////////////////////////här ändrade jag updatedata commented !!!
-            //uppdatera datatabellerna
+            //uppdatera datatabellerna.
             BoatData.UpdateVisitors(waitingBoats);
 
 
@@ -95,89 +101,9 @@ namespace HamnSimulering
         {
             waitingBoats.Clear();
         }
-        public static void SetupAssigner(Harbour harbour, bool reset=false)
-        {
-            if (!reset)
-            {
-                assigners.Add(new Assigner(harbour));
-            }
-            else
-            {
-                var assigner = assigners.FirstOrDefault(assigner => assigner.AssignedHarbour == harbour.Name);
-                if(assigner != null)
-                {
-                    assigners.Remove(assigner);
-                    assigners.Add(new Assigner(harbour));
-                }
-                else
-                {
-                    throw new IndexOutOfRangeException();
-                }
-            }
-        }
 
 
-        static void GetPositions()
-        {
-            foreach (Assigner assigner in assigners)
-            {
-                assigner.GetPositions();
-            }
-        }
-
-        static void ClearAssignerPositions()
-        {
-            foreach(Assigner assigner in assigners)
-            {
-                assigner.ClearPositions();
-            }
-        }
-
-        static void AddFromBottom()
-        {
-            foreach (Assigner assigner in assigners)
-            {
-                assigner.TryAddFromBottom(otherBoatsWaiting);
-            }
-
-        }
-
-
-        static void TestOldSpots()
-        {
-            foreach (Assigner assigner in assigners)
-            {
-                assigner.TryOldSpots(waitingBoats);
-            }
-        }
-
-
-        static void AddRowBoats()
-        {
-            foreach(Assigner assigner in assigners)
-            {
-
-                assigner.GiveRowboatUnassignedSpot(rowboatsWaiting);
-            }
-        }
-
-
-
-
-
-        public static void AddOneDay(Harbour harbour)
-        {
-            harbour.RemoveBoats();
-
-
-            if (harbour.Port.Any())
-            {
-                foreach (Boat boat in harbour.Port)
-                {
-                    boat.DaysSpentAtHarbour++;
-                }
-            }
-        }
+        
 
         public static void AddToWaiting(int? ammount=null)
         {
@@ -212,11 +138,11 @@ namespace HamnSimulering
                 waitingBoats.Add(Generate.RandomBoat());
             }
         }
-        public static void UpdateData(Harbour harbour)
+        public static void UpdateData(Port port)
         {
-            BoatData.ListFreeSpots__fix(harbour);
+            BoatData.ListFreeSpotsPort(port);
 
-            BoatData.UpdateHarbour__fix(harbour);
+            BoatData.UpdatePort(port);
             //BoatData.UpdateHarbour(harbour);
             //BoatData.ListFreeSpots(harbour);
         }

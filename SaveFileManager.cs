@@ -55,7 +55,7 @@ namespace HamnSimulering
             daysPassed = 0;
             boatsRejected = 0;
             boatsAccepted = 0;
-            boatsPerDay = 0;
+            boatsPerDay = 5; // 5 ska vara default
             if (File.Exists(fileName))
             {
                 foreach (string line in File.ReadAllLines(fileName))

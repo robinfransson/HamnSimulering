@@ -11,7 +11,7 @@ namespace HamnSimulering
         {
             MaxDaysAtHarbour = 6;
             Containers = currentLoad;
-            SizeInSpots = 4f;
+            Size = 4f;
         }
     }
 }

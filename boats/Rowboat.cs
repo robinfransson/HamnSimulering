@@ -10,7 +10,7 @@ namespace HamnSimulering
         public Rowboat(string id, int weight, int topSpeedInKnots, int passengers, int daysSpent=0, int[] spots=null) : base(id, weight, topSpeedInKnots, daysSpent, spots)
         {
             MaxCapacity = passengers;
-            SizeInSpots = 0.5f;
+            Size = 0.5f;
             MaxDaysAtHarbour = 1;
         }
 

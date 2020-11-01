@@ -10,17 +10,17 @@
     <Canvas Height="639" VerticalAlignment="Top" Margin="0,0,65,0">
         <Button x:Name="manualContinue" Content="Nästa dag" Height="45" Canvas.Top="403" Width="114" Canvas.Left="30" Click="ManualContinue_Click"/>
         <Button x:Name="toggleAuto" Content="Auto" Height="44" Canvas.Left="162" Canvas.Top="404" Width="114" Click="AutoButton_Clicked"/>
-        <Label x:Name="leftHarbourLabel" Content="Antar båtar i hamnen: 0" Height="29" Canvas.Left="319" Canvas.Top="561" Width="198" HorizontalContentAlignment="Center"/>
-        <Label x:Name="rightHarbourLabel" Content="Antar båtar i hamnen: 0" Height="29" Canvas.Left="815" Canvas.Top="561" Width="204" HorizontalContentAlignment="Center" />
-        <DataGrid x:Name="leftHarbourGrid" Height="544" Canvas.Left="296" Width="448" AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" ColumnWidth="*" AutoGeneratingColumn="HarbourGrid_AutoGeneratingColumn" GridLinesVisibility="Horizontal" Canvas.Top="10" />
+        <Label x:Name="leftPortBoatsLabel" Content="Antar båtar i hamnen: 0" Height="29" Canvas.Left="319" Canvas.Top="561" Width="198" HorizontalContentAlignment="Center"/>
+        <Label x:Name="rightPortBoatsLabel" Content="Antar båtar i hamnen: 0" Height="29" Canvas.Left="815" Canvas.Top="561" Width="204" HorizontalContentAlignment="Center" />
+        <DataGrid x:Name="leftPortGrid" Height="544" Canvas.Left="296" Width="448" AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" ColumnWidth="*" AutoGeneratingColumn="HarbourGrid_AutoGeneratingColumn" GridLinesVisibility="Horizontal" Canvas.Top="10" />
         <DataGrid x:Name="waitingBoatsGrid" Height="206" Width="281"  AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" ColumnWidth="*" GridLinesVisibility="Horizontal" Canvas.Left="10" Canvas.Top="10" />
-        <DataGrid x:Name="rightHarbourGrid" Height="544" Canvas.Left="749" Width="450" AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" GridLinesVisibility="Horizontal" ColumnWidth="*" AutoGeneratingColumn="HarbourGrid_AutoGeneratingColumn" Canvas.Top="10" />
+        <DataGrid x:Name="rightPortGrid" Height="544" Canvas.Left="749" Width="450" AutoGenerateColumns="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" GridLinesVisibility="Horizontal" ColumnWidth="*" AutoGeneratingColumn="HarbourGrid_AutoGeneratingColumn" Canvas.Top="10" />
         <Label x:Name="waitingBoatsLabel" Content="Väntande båtar: 0" Height="26" Canvas.Left="77" Canvas.Top="229" Width="116"/>
         <Label x:Name="rejectedBoatsLabel" Content="Avvisade båtar: 0" Height="30" Canvas.Left="21" Canvas.Top="328" Width="158"/>
         <Label x:Name="numberOfDaysLabel" Content="Passerade dagar: 0" Height="25" Canvas.Left="21" Canvas.Top="305" Width="132"/>
         <Button x:Name="saveButton" Content="Save" Height="42" Canvas.Left="30" Canvas.Top="462" Width="114" Click="SaveButton_Click"/>
-        <Label x:Name="leftHarbourSpotsLeftLabel" Content="Lediga platser: " Height="29" Canvas.Left="568" Canvas.Top="561" Width="132"/>
-        <Label x:Name="rightHarbourSpotsLeftLabel" Content="Lediga platser: " Height="29" Canvas.Left="1048" Canvas.Top="561" Width="132"/>
+        <Label x:Name="leftPortSpotsRemainingLabel" Content="Lediga platser: " Height="29" Canvas.Left="568" Canvas.Top="561" Width="132"/>
+        <Label x:Name="rightPortSpotsRemainingLabel" Content="Lediga platser: " Height="29" Canvas.Left="1048" Canvas.Top="561" Width="132"/>
         <Slider x:Name="newBoatsSlider" Height="23" Canvas.Left="34" Canvas.Top="280" Width="202" Value="5" TickPlacement="None" ValueChanged="BoatSlider_ValueChanged" SmallChange="1" Maximum="100"/>
         <Label x:Name="newBoatsLabel" Content="Nya båtar per dag: 5" Height="30" Canvas.Left="63" Canvas.Top="250" Width="146"/>
         <TextBox x:Name="autoSpeedTextBox" Height="18" Canvas.Left="182" Canvas.Top="493" Text="5" TextWrapping="Wrap" Width="84" KeyDown="AutoSpeed_KeyDOwn"/>

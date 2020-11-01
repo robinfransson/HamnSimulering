@@ -11,19 +11,20 @@ namespace HamnSimulering
             else if (this is Catamaran catamaran) return $"{catamaran.NumberOfBeds} sängar";
             else if (this is Sailboat sailboat) return $"{sailboat.BoatLength} meter";
             else if (this is Motorboat motorboat) return $"{motorboat.Horsepowers} hästkrafter";
-            else throw new NotImplementedException("Unsupported boat type: " +this.GetType());
+            else throw new NotImplementedException("Unsupported boat type: " + this.GetType());
         };
         public int[] AssignedSpot { get; set; }
         public string GetSpot 
         { 
             get
             {
+                //lägger till 1 på varje plats för att få ut från 1-32 istället för 0-31
                 return AssignedSpot.Length < 2 ? $"{AssignedSpot[0] + 1}" : $"{AssignedSpot[0] + 1}-{AssignedSpot[1] + 1}";
             }
         }
 
 
-        public float SizeInSpots { get; set; }
+        public float Size { get; set; }
         public string ModelID { get; set; }
         public int DaysSpentAtHarbour { get; set; }
         public string TopSpeedKMH => (float)Math.Round(TopSpeedKnots * 1.852, 0) + " km/h";

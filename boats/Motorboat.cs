@@ -11,7 +11,7 @@ namespace HamnSimulering
         {
             MaxDaysAtHarbour = 3;
             Horsepowers = horsePower;
-            SizeInSpots = 1f;
+            Size = 1f;
         }
     }
 }

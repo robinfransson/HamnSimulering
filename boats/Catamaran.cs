@@ -10,7 +10,7 @@ namespace HamnSimulering
         public Catamaran(string id, int weight, int topSpeedInKnots, int beds, int daysSpent = 0, int[] spots = null) : base(id, weight, topSpeedInKnots, daysSpent, spots)
         {
             NumberOfBeds = beds;
-            SizeInSpots = 3f;
+            Size = 3f;
             MaxDaysAtHarbour = 3;
         }
     }

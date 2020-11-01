@@ -10,7 +10,7 @@ namespace HamnSimulering
         public Sailboat(string id, int weight, int topSpeedInKnots, int length, int daysSpent = 0, int[] spots = null) : base(id, weight, topSpeedInKnots, daysSpent, spots)
         {
             BoatLength = length;
-            SizeInSpots = 2f;
+            Size = 2f;
             MaxDaysAtHarbour = 4;
         }
     }
