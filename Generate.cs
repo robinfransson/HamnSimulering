@@ -23,6 +23,8 @@ namespace HamnSimulering
             //BoatType randomBoatType = (BoatType)rand.Next(Enum.GetNames(typeof(BoatType)).Length);
             Func<int, int, int> propertyRange = (min, max) => rand.Next(min, max + 1);
             Func<BoatType> selectRandomType = () => (BoatType)rand.Next(Enum.GetNames(typeof(BoatType)).Length);
+
+
             BoatType randomBoatType = selectRandomType();
             int topSpeedKnots;
             int weight;
@@ -37,7 +39,7 @@ namespace HamnSimulering
                     prefix = "R-";
                     ID = GenerateName(prefix);
                     weight = propertyRange(100, 300);
-                    topSpeedKnots = propertyRange(0, 3); //upp till 3 knop, exclusive max därav +1
+                    topSpeedKnots = propertyRange(0, 3); //upp till 3 knop
                     specialProperty = propertyRange(1, 6); //antal passagerare i det här fallet
                     return new Rowboat(ID, weight, topSpeedKnots, specialProperty);
 

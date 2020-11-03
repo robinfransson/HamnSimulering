@@ -11,17 +11,14 @@ namespace HamnSimulering
 {
     class SaveFileManager
     {
-
-
         public static void Save(List<Boat> boats, string fileName)
         {
             File.WriteAllLines(fileName, DataToStore(boats));
         }
 
-
         public static void DeleteSaves()
         {
-            string[] saveFiles = new string[4] { "left.txt", "right.txt", "waiting.txt", "stats.txt" };
+            string[] saveFiles = new string[6] { "left.txt", "right.txt", "waiting.txt", "stats.txt", "left_removed.txt", "right_removed.txt" };
             foreach (string file in saveFiles)
             {
                 File.Delete(file);
@@ -50,12 +47,12 @@ namespace HamnSimulering
 
 
 
-        public static void LoadStatistics(string fileName, out int daysPassed, out int boatsRejected, out int boatsAccepted, out int boatsPerDay)
+        public static void LoadStatistics(string fileName)
         {
-            daysPassed = 0;
-            boatsRejected = 0;
-            boatsAccepted = 0;
-            boatsPerDay = 5; // 5 ska vara default
+            int daysPassed = 0;
+            int boatsRejected = 0;
+            int boatsAccepted = 0;
+            int boatsPerDay = 5; // 5 ska vara default
             if (File.Exists(fileName))
             {
                 foreach (string line in File.ReadAllLines(fileName))
@@ -79,6 +76,11 @@ namespace HamnSimulering
                     }
                 }
             }
+
+            Simulate.BoatsPerDay = boatsPerDay;
+            Simulate.BoatsRejected = boatsRejected;
+            Simulate.BoatsAccepted = boatsAccepted;
+            Simulate.DaysPassed = daysPassed;
         }
 
         static List<Boat> LoadFromFile(string fileName)
@@ -100,12 +102,14 @@ namespace HamnSimulering
 
 
             List<Boat> loadedFromFile = new List<Boat>();
-            string[] myFile = File.ReadAllLines(fileName);
+
+            //skippar första raden för att det är en rad som visar hur 
+            string[] myFile = File.ReadAllLines(fileName).Skip(1).ToArray();
 
 
             foreach (string dataLine in myFile)
             {
-                if(dataLine == string.Empty)
+                if (dataLine == string.Empty )
                 {
                     break;
                 }
@@ -118,7 +122,7 @@ namespace HamnSimulering
                 int[] spots = null;
 
                 //om det finns platser reserverade
-                if (saveData.Length > 5)
+                if (saveData[5] != "?")
                 {
                     string[] spotsTaken = saveData[5].Split("-");
                     spots = spotsTaken.GetUpperBound(0) < 1 ? new int[1] { Int32.Parse(spotsTaken[0]) } : new int[2] { Int32.Parse(spotsTaken[0]), Int32.Parse(spotsTaken[1]) };
@@ -131,12 +135,16 @@ namespace HamnSimulering
 
         static string[] DataToStore(List<Boat> boats)
         {
+            //antalet båtar som ska sparas
             int saveDataLength = boats.Count();
-            string[] saveData = new string[saveDataLength];
-            int i = 0;
+            //plussar på 1 för att jag ska spara en rad med formatet så det är lättare att förstå  
+            //hur datat sparas
+            string[] saveData = new string[saveDataLength+1];
+            char dataSeparator = ';';
+            saveData[0] = "[ID;Maxfart(KNOP);Vikt;Dagar vid hamnen;Båtens special property;(plats vid hamnen, ? = not set)]";
+            int i = 1;
             foreach (Boat boat in boats)
             {
-                char dataSeparator = ';';
                 string boatData = "";
                 int? numberOfSpots = boat.AssignedSpot?.Length;
                  
@@ -160,20 +168,25 @@ namespace HamnSimulering
                     case Motorboat motor:
                         boatData += $"{motor.Horsepowers}";
                         break;
-                    default:
-                        var cata = boat as Catamaran;
+                    case Catamaran cata:
                         boatData += $"{cata.NumberOfBeds}";
                         break;
+                    default:
+                        throw new NotImplementedException("Unsupported boat type: " + boat.GetType());
                 }
-                switch(numberOfSpots) //längden av arrayen där platserna sparas
+
+
+                boatData += dataSeparator;
+                switch (numberOfSpots) //längden av arrayen där platserna sparas
                 {
                     case 1:
-                        boatData += dataSeparator + $"{boat.AssignedSpot[0]}";
+                        boatData += $"{boat.AssignedSpot[0]}";
                         break;
                     case 2:
-                        boatData += dataSeparator + $"{boat.AssignedSpot[0]}-{boat.AssignedSpot[1]}";
+                        boatData += $"{boat.AssignedSpot[0]}-{boat.AssignedSpot[1]}";
                         break;
                     default:
+                        boatData += "?";
                         break;
                 }
                 saveData[i] = boatData;
@@ -182,9 +195,9 @@ namespace HamnSimulering
             return saveData;
         }
 
-        public static void SaveStatistics(string fileName, int daysPassed, int boatsRejected, int boatsAccepted, int boatsPerDay)
+        public static void SaveStatistics(string fileName)
         {
-            string statsToSave = $"days passed={daysPassed}\nboats rejected={boatsRejected}\nboats accepted={boatsAccepted}\nboats per day={boatsPerDay}";
+            string statsToSave = $"days passed={Simulate.DaysPassed}\nboats rejected={Simulate.BoatsRejected}\nboats accepted={Simulate.BoatsAccepted}\nboats per day={Simulate.BoatsPerDay}";
             File.WriteAllText(fileName, statsToSave);
         }
     }

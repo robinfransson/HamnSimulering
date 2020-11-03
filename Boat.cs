@@ -27,10 +27,19 @@ namespace HamnSimulering
         public float Size { get; set; }
         public string ModelID { get; set; }
         public int DaysSpentAtHarbour { get; set; }
-        public string TopSpeedKMH => (float)Math.Round(TopSpeedKnots * 1.852, 0) + " km/h";
+
+        public float TopSpeedKMH { get; set; }
+        public string Speed
+        {
+            get
+            {
+                return TopSpeedKMH + " km/h";
+            }
+        }
         public int TopSpeedKnots { get; set; }
         public int Weight { get; set; }
         public int MaxDaysAtHarbour { get; set; }
+
         public Func<string> GetBoatType => () =>
             {
                 if (this is Rowboat) return "Roddbåt";
@@ -54,6 +63,7 @@ namespace HamnSimulering
             ModelID = id;
             Weight = weight;
             TopSpeedKnots = topSpeedKnots;
+            TopSpeedKMH = (float)Math.Round(TopSpeedKnots * 1.852, 1);
         }
     }
 }

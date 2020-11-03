@@ -16,8 +16,6 @@ namespace HamnSimulering
         {
             ListFreeSpotsPort(port);
             UpdatePort(port);
-            //BoatData.UpdateHarbour(harbour);
-            //BoatData.ListFreeSpots(harbour);
         }
 
 
@@ -26,23 +24,25 @@ namespace HamnSimulering
         /// </summary>
         /// <param name="table">Vilken tabell som ska visas</param>
         /// <returns></returns>
-        public static DataView BoatDataViewer(string table)
+        public static DataView BoatDataViewer(string tableName)
         {
             //i brist på bättre lösning
-            if (table == "WaitingBoats")
+            //väntande båtar behöver inte sorteras på något vis
+            if (tableName == "WaitingBoats")
             {
-                return boatInfo.Tables[table].DefaultView;
+                return boatInfo.Tables[tableName].DefaultView;
             }
             else
             {
-                //splittar hamnplats strängen och sorterar på det första värdet
+                //splittar hamnplats strängen och returnerar det första värdet i strängen
+                //i.e en plats 12-14 returnerar 12 och plats 10 returnerar 10
                 Func<string, char, int> splitColumnData =
-                    ((data, splitAt) => int.Parse(data.Split(splitAt)[0]));
+                    (data, splitAt) => int.Parse(data.Split(splitAt)[0]);
 
 
 
-                var boats = boatInfo.Tables[table].AsEnumerable();
-                var q1 = boats.OrderBy(row => splitColumnData(row.Field<string>("Plats"), '-'));
+                var q1 = boatInfo.Tables[tableName].AsEnumerable() //AsEnumerable så att jag kan använda linq
+                                                   .OrderBy(row => splitColumnData(row.Field<string>("Plats"), '-'));
                 return q1.AsDataView();
             }
         }
@@ -50,28 +50,36 @@ namespace HamnSimulering
         /// <summary>
         /// Skapar tabeller och kolumner
         /// </summary>
-        public static void Port_SetupDataTable(Port port)
+        public static void SetupPortDataTable(string portName)
         {
                 DataTable portTable = new DataTable
                 {
-                    Columns = { { "Plats", typeof(string) }, { "Båttyp", typeof(string) }, { "Vikt", typeof(string) },
-                                { "Nr", typeof(string) }, { "Maxhast", typeof(string) },
-                                { "Dagar", typeof(string) }, { "Övrigt", typeof(string) }, }
+                    //alla kolumner får typen sträng pga att det inte endast är nummer som läggs in
+                    Columns = { { "Plats", typeof(string) }, 
+                                { "Båttyp", typeof(string) }, 
+                                { "Vikt", typeof(string) },
+                                { "Nr", typeof(string) }, 
+                                { "Maxhast", typeof(string) },
+                                { "Dagar", typeof(string) },
+                                { "Övrigt", typeof(string) }, }
                 };
 
-                    portTable.TableName = port.Name;
+                    portTable.TableName = portName;
 
 
 
             boatInfo.Tables.Add(portTable);
         }
 
-        public static void Waiting_SetupDataTable()
+        public static void SetupWaitingBoatsDataTable()
         { 
             DataTable waitingBoatsTable = new DataTable("WaitingBoats")
             {
-                Columns = { { "Båttyp", typeof(string) }, { "Vikt", typeof(string) },
-                                { "Nr", typeof(string) }, { "Maxhast", typeof(string) }, { "Övrigt", typeof(string) }, }
+                Columns = { { "Båttyp", typeof(string) },
+                            { "Vikt", typeof(string) },
+                            { "Nr", typeof(string) }, 
+                            { "Maxhast", typeof(string) }, 
+                            { "Övrigt", typeof(string) }, }
             };
 
             boatInfo.Tables.Add(waitingBoatsTable);
@@ -82,15 +90,15 @@ namespace HamnSimulering
         /// Lägger in en rad på varje plats som är ledig
         /// </summary>
         /// <param name="harbour"></param>
-        public static void ListFreeSpots(Port harbour)
+        public static void ListFreeSpots(Port port)
         {
 
-            DataTable table = boatInfo.Tables[harbour.Name];
+            DataTable table = boatInfo.Tables[port.PortName];
             int currentSpot = 1;
             DataRow freeSpot;
-            foreach (bool spot in harbour.SpotIsTaken)
+            foreach (bool spotTaken in port.OccupiedSpots)
             {
-                if (!spot)
+                if (!spotTaken)
                 {
                     freeSpot = table.NewRow();
                     freeSpot["Plats"] = currentSpot;
@@ -130,7 +138,7 @@ namespace HamnSimulering
                     newWaitingBoat["Båttyp"] = boat.GetBoatType();
                     newWaitingBoat["Vikt"] = boat.Weight + " kg";
                     newWaitingBoat["Nr"] = boat.ModelID;
-                    newWaitingBoat["Maxhast"] = boat.TopSpeedKMH;
+                    newWaitingBoat["Maxhast"] = boat.Speed;
                     newWaitingBoat["Övrigt"] = boat.GetSpecialProperty();
                     boatsWaiting.Rows.Add(newWaitingBoat);
                 }
@@ -153,7 +161,7 @@ namespace HamnSimulering
             try
             {
                 //tar med vikten för att vara extra säker att rätt rad tas bort
-                DataRow currentBoat = table.Select($"Nr = '{boat.ModelID}' AND Vikt = '{boat.Weight}'").FirstOrDefault();
+                DataRow currentBoat = table.Select($"Nr = '{boat.ModelID}' AND Vikt = '{boat.Weight} kg'").FirstOrDefault();
                 table.Rows.Remove(currentBoat);
             }
             catch (Exception e)
@@ -162,66 +170,63 @@ namespace HamnSimulering
             }
         }
 
-
-
-
-        public static void FillEmpty(Port port)
+        public static void ListFreeSpotsPort_fix(Port port, Boat boat)
         {
-            DataTable table = boatInfo.Tables[port.Name];
 
+            DataTable table = boatInfo.Tables[port.PortName];
             DataRow freeSpot;
-            for (int i = 1; i <= 32; i++)
+            int startRow = boat.AssignedSpot[0] + 1;
+            int endRow = boat.AssignedSpot.Length < 2 ? boat.AssignedSpot[0] : boat.AssignedSpot[1];
+
+            for(int currentRow = startRow; currentRow <= endRow; currentRow++)
             {
-                freeSpot = table.NewRow();
-                freeSpot["Plats"] = i;
-                freeSpot["Båttyp"] = "Ledigt";
-                freeSpot["Dagar"] = "";
-                table.Rows.Add(freeSpot);
+                bool spotTaken = port.OccupiedSpots[currentRow];
+                if (!spotTaken && table.Select($"Plats = '{currentRow}' AND Båttyp = 'Ledigt'").FirstOrDefault() == null)
+                {
+                    freeSpot = table.NewRow();
+                    freeSpot["Plats"] = currentRow;
+                    freeSpot["Båttyp"] = "Ledigt";
+                    table.Rows.Add(freeSpot);
+
+                }
             }
         }
+
 
 
         public static void ListFreeSpotsPort(Port port)
         {
 
-            DataTable table = boatInfo.Tables[port.Name];
-            int currentSpot = 1;
+            DataTable table = boatInfo.Tables[port.PortName];
             DataRow freeSpot;
-            foreach (bool spot in port.SpotIsTaken)
+            int currentSpot = 1;
+
+
+            foreach (bool spotTaken in port.OccupiedSpots)
             {
-                if (!spot && table.Select($"Plats = '{currentSpot}' AND Båttyp = 'Ledigt'").FirstOrDefault() == null)
+                //om det inte står någon båt på platsen och platsen inte redan är listad som ledig
+                if (!spotTaken && table.Select($"Plats = '{currentSpot}' AND Båttyp = 'Ledigt'").FirstOrDefault() == null)
                 {
                     freeSpot = table.NewRow();
                     freeSpot["Plats"] = currentSpot;
                     freeSpot["Båttyp"] = "Ledigt";
-                    freeSpot["Dagar"] = "";
                     table.Rows.Add(freeSpot);
 
                 }
+
                 currentSpot++;
             }
-
         }
+
+
         public static void UpdatePort(Port port, Boat boat = null)
         {
-            DataTable table = boatInfo.Tables[port.Name];
+            DataTable table = boatInfo.Tables[port.PortName];
             if (boat == null) // om boat är null har jag bestämt att det är då den laddas från fil
             {
-                foreach (Boat b in port.Boats)
+                foreach (Boat b in port.boats)
                 {
                     UpdateSingleBoat(table, b);
-                    //int start = boat.AssignedSpot[0] + 1;
-                    //int end = boat.AssignedSpot.Length < 2 ? boat.AssignedSpot[0] + 1 : boat.AssignedSpot[1] + 1;
-                    //DataRow emptySpot;
-                    //for (int i = start; i <= end; i++)
-                    //{
-                    //    emptySpot = table.Select($"Plats = '{i}' AND Båttyp = 'Ledigt'").FirstOrDefault();
-                    //    if (emptySpot != null)
-                    //    {
-                    //        table.Rows.Remove(emptySpot);
-                    //    }
-                    //}
-                    //AddOrModifyBoat(table, boat);
                 }
             }
             else
@@ -244,13 +249,19 @@ namespace HamnSimulering
                     table.Rows.Remove(emptySpot);
                 }
             }
-            AddOrModifyBoat(table, boat);
+            AddBoatToTable(table, boat);
         }
 
-        public static void AddTimeToBoat(Boat boat, Port port)
+
+        /// <summary>
+        /// Uppdaterar kolumnen Dagar på båten 
+        /// </summary>
+        /// <param name="boat"></param>
+        /// <param name="port"></param>
+        public static void AddTimeToBoat(Boat boat, string tableName)
         {
-            DataTable table = boatInfo.Tables[port.Name];
-            DataRow currentBoat = table.Select($"Nr = '{boat.ModelID}' AND Vikt = '{boat.Weight}'").FirstOrDefault();
+            DataTable table = boatInfo.Tables[tableName];
+            DataRow currentBoat = table.Select($"Nr = '{boat.ModelID}' AND Vikt = '{boat.Weight} kg'").FirstOrDefault();
             if (currentBoat != null)
             {
                 currentBoat["Dagar"] = $"{boat.DaysSpentAtHarbour}/{boat.MaxDaysAtHarbour}";
@@ -266,33 +277,27 @@ namespace HamnSimulering
         /// </summary>
         /// <param name="table"></param>
         /// <param name="boat"></param>
-        static void AddOrModifyBoat(DataTable table, Boat boat)
+        static void AddBoatToTable(DataTable table, Boat boat)
         {
-            DataRow currentBoat = table.Select($"Nr = '{boat.ModelID}' AND Vikt = '{boat.Weight}'").FirstOrDefault();
-            if (currentBoat != null)
+
+            try
             {
+                DataRow currentBoat = table.NewRow();
+                currentBoat["Plats"] = boat.GetSpot;
+                currentBoat["Båttyp"] = boat.GetBoatType();
+                currentBoat["Vikt"] = boat.Weight + " kg";
+                currentBoat["Nr"] = boat.ModelID;
+                currentBoat["Maxhast"] = boat.Speed;
                 currentBoat["Dagar"] = $"{boat.DaysSpentAtHarbour}/{boat.MaxDaysAtHarbour}";
+                currentBoat["Övrigt"] = boat.GetSpecialProperty();
+                table.Rows.Add(currentBoat);
             }
-            else
+            catch (Exception e)
             {
-                try
-                {
-                    currentBoat = table.NewRow();
-                    currentBoat["Plats"] = boat.GetSpot;
-                    currentBoat["Båttyp"] = boat.GetBoatType();
-                    currentBoat["Vikt"] = boat.Weight;
-                    currentBoat["Nr"] = boat.ModelID;
-                    currentBoat["Maxhast"] = boat.TopSpeedKMH;
-                    currentBoat["Dagar"] = $"{boat.DaysSpentAtHarbour}/{boat.MaxDaysAtHarbour}";
-                    currentBoat["Övrigt"] = boat.GetSpecialProperty();
-                    table.Rows.Add(currentBoat);
-                }
-                catch (Exception e)
-                {
-                    MessageBox.Show(e.ToString());
-                }
+                MessageBox.Show(e.ToString());
             }
         }
+
 
     }
 }
@@ -316,7 +321,20 @@ namespace HamnSimulering
 
 
 
+//public static void FillEmpty(Port port)
+//{
+//    DataTable table = boatInfo.Tables[port.PortName];
 
+//    DataRow freeSpot;
+//    for (int i = 1; i <= port.Spots; i++)
+//    {
+//        freeSpot = table.NewRow();
+//        freeSpot["Plats"] = i;
+//        freeSpot["Båttyp"] = "Ledigt";
+//        freeSpot["Dagar"] = "";
+//        table.Rows.Add(freeSpot);
+//    }
+//}
 
 
 

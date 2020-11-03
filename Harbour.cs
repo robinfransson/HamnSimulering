@@ -1,38 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Policy;
 
 namespace HamnSimulering
 {
     class Harbour
     {
 
-        List<Positions> positions__fix = new List<Positions>();
-        List<Positions> mergedPositions__fix = new List<Positions>();
-
-        public List<Port> Ports { get; set; }
+        List<Position> mergedPositions = new List<Position>();
 
 
+        List<Port> ports = new List<Port>();
 
-        public Harbour()
+
+
+
+        public void GetPositionsFromRemovedBoats()
         {
-            Ports = new List<Port>();
-        }
-
-
-        public void GetPositions()
-        {
-            foreach (Port port in Ports)
+            foreach (Port port in ports)
             {
-                GetPositions(port);
+                if (port.RemovedBoats.Any())
+                {
+                    FetchPositions(port);
+                }
             }
         }
 
         public void AddFromBottom(List<Boat> boats)
         {
-            foreach (Port port in Ports)
+            foreach (Port port in ports)
             {
-                TryAddFromBottom(boats, port);
+                if (boats.Any())
+                {
+                    TryAddFromBottom(boats, port);
+                }
             }
 
         }
@@ -40,175 +42,171 @@ namespace HamnSimulering
 
         public void TestOldSpots(List<Boat> boats)
         {
-            foreach (Port port in Ports)
+            foreach (Port port in ports)
             {
-                TryOldSpots(boats, port);
+                if (boats.Any())
+                {
+                    TryOldSpots(boats, port);
+                }
             }
         }
 
 
-        public void AddRowBoats(List<Boat> rowboats)
+        public void AddRowBoats(List<Rowboat> rowboats)
         {
-            foreach (Port port in Ports)
+            foreach (Port port in ports)
             {
-
-                GiveRowboatUnassignedSpot(rowboats, port);
+                if (rowboats.Any())
+                {
+                    GiveRowboatUnassignedSpot(rowboats, port);
+                }
             }
         }
 
 
 
-
-
+        /// <summary>
+        /// Lägger till en dag på varje båt i hamnen
+        /// </summary>
         public void AddOneDay()
         {
-            foreach (Port port in Ports)
+            foreach (Port port in ports)
             {
-                port.RemoveBoats();
+                port.CheckTimeOnBoats();
 
 
-                if (port.Boats.Any())
+                if (port.boats.Any())
                 {
-                    foreach (Boat boat in port.Boats)
+                    foreach (Boat boat in port.boats)
                     {
                         boat.DaysSpentAtHarbour++;
-                        BoatData.AddTimeToBoat(boat, port);
+                        BoatData.AddTimeToBoat(boat, port.PortName);
                     }
                 }
             }
         }
 
+        public void ListFreeSpots()
+        {
+            foreach(Port port in ports)
+            {
+                BoatData.ListFreeSpotsPort(port);
+            }
+        }
 
-
+        /// <summary>
+        /// Lägger till en kaj i listan med kajer
+        /// </summary>
+        /// <param name="p"></param>
         public void AddPort(Port p)
         {
-            Ports.Add(p);
-        }
-        public void RemovePort(Port p)
-        {
-            Ports.Remove(p);
+            ports.Add(p);
         }
 
-        public void GetPositions(Port p)
+        /// <summary>
+        /// Tar bort den gamla kajen som har samma PortName och lägger in den nya
+        /// </summary>
+        /// <param name="newPort"></param>
+        public void ReplacePort(Port newPort)
         {
-            Func<int[], bool> errorCheck = (pos) =>
+            Port portToRemove = ports.Where(port => port.PortName == newPort.PortName).FirstOrDefault();
+            ports.Remove(portToRemove);
+            ports.Add(newPort);
+        }
+
+
+
+
+
+        public void FetchPositions(Port port)
+        {
+            List<int[]> positions = port.RemovedBoats.Where(boat => boat.AssignedSpot.Length == 2)
+                                                     .Select(value => value.AssignedSpot)
+                                                     .ToList();
+
+            List<int[]> smallBoatPositions = port.RemovedBoats
+                                            .Where(boat => boat.AssignedSpot.Length == 1)
+                                            .Select(boat => boat.AssignedSpot)
+                                            .ToList();
+
+            //koden är uppbyggd så att alla int[] antas ha 2 index
+            foreach(int[] position in smallBoatPositions)
             {
-                return pos[0] > pos[1];
+                positions.Add(new int[2] { position[0], position[0] });
+            }
+
+            //tar bort om det finns mer än 1 av samma 
+            positions = positions.GroupBy(position => position[0])
+                                 .Select(group => group.FirstOrDefault()) //väljer det första värdet i varje grupp, (sorterar ut dubletter (roddbåtar dvs))
+                                 .OrderBy(position => position[0]).ToList();
+
+            MergePositions(port, positions);
+        }
+
+
+
+
+
+        void MergePositions(Port p, List<int[]> positions)
+        {
+
+            List<int[]> mergedPortSpots = new List<int[]>
+            {
+
+
+                //lägger in det första värdet från listan med de borttagna båtarnas positioner i listan som ska innehålla
+                //de som har blivit ihopsatta så att loopen har något att jämföra med
+                positions.FirstOrDefault()
             };
 
-            //AssignedSpotAtHarbour[0] är första platsen som båten tar upp, så platserna sorteras på den för att när dom ska försöka slås ihop
-            //hamnar de närliggande efter varandra i listan
-            List<int[]> pos = p.RemovedBoats.OrderBy(boat => boat.AssignedSpot[0]).Select(value => value.AssignedSpot).ToList();
-            positions__fix = FixPositions(pos, p);
-            MergePositions__fix(p);
-        }
 
-        void RemoveDuplicates(Port p)
-        {
-            if (mergedPositions__fix.Any(pos => pos.Port == p.Name))
+            //skippar det första värdet i listan för det redan är inlagt i den andra, så den inte jämför samma värden med varandra
+            positions = positions.Skip(1).ToList();
+
+            foreach (int[] currentPosition in positions) //skippar första
             {
-                int lastSpotToCheck = mergedPositions__fix.Where(pos => pos.Port == p.Name).Max(pos => pos.Position[0]);
-                for (int i = 0; i < lastSpotToCheck; i++)
-                {
-                    bool duplicate = mergedPositions__fix.Count(pos => pos.Position[0] == i && pos.Port == p.Name) > 1;
-                    Positions toRemove = mergedPositions__fix.FirstOrDefault(pos => pos.Position[0] == i && pos.Port == p.Name);
-                    if (duplicate)
-                    {
-                        mergedPositions__fix.Remove(toRemove);
-                    }
-                }
-            }
-        }
+                //hämtar det föregående värdet
+                int[] previousPosition = mergedPortSpots.LastOrDefault();
 
-        public void ClearPositions()
-        {
-            mergedPositions__fix.Clear();
-            positions__fix.Clear();
+                int[] nextValueToAdd;
 
-
-        }
-
-        /// <summary>
-        /// ger alla int[] 2 index, har den bara 1 från början blir det andra indexet samma som det första
-        /// detta görs pga loopar som jämför första och andra värdet.
-        /// </summary>
-        /// <param name="positions"></param>
-        /// <returns></returns>
-        List<Positions> FixPositions(List<int[]> positionsBeforeFix, Port p)
-        {
-            List<Positions> fixedPositions = new List<Positions>();
-            foreach (var pos in positionsBeforeFix)
-            {
-                if (pos.Length < 2)
-                {
-                    fixedPositions.Add(new Positions(new int[2] { pos[0], pos[0] }, p.Name));
-                }
-                else
-                {
-                    fixedPositions.Add(new Positions(pos, p.Name));
-                }
-            }
-            return fixedPositions;
-        }
-
-        /// <summary>
-        /// "Lägger ihop" int[2], om i[1] + 1 = j[0]<br />
-        /// exempel, {4,5} och {6,7} blir då {4,7} som läggs in i en lista.<br />
-        /// och nästa gång den loopar kommer den kolla om nästa array går<br />
-        /// att lägga ihop med den förra arrayen, gör det inte det åker den in som den är i listan.<br />
-        /// (detta förutsätter att listan redan är sorterad)
-        /// </summary>
-        void MergePositions__fix(Port p)
-        {
-
-
-            List<int[]> position____fix = positions__fix.Where(pos => pos.Port == p.Name).Select(pos => pos.Position).ToList();
-            //räknar helt enkelt ut hur mycket större det ena talet är, för att sedan sortera dom i storleksordning
-
-
-            List<int[]> merged = new List<int[]>(); 
-
-            int[] previousPosition = null;
-            foreach (int[] position in position____fix)
-            {
-                //första gången den körs har den inget värde att jämföra med
-                //så jag sätter värdet prevValue till det första i listan med positioner
-                //och lägger in det i mergedPositions och fortsätter loopen
-                if (previousPosition is null)
-                {
-                    previousPosition = position;
-                    merged.Add(previousPosition);
-                    continue;
-                }
-                previousPosition = merged.LastOrDefault();
-
-                int[] fixedValue = position;
 
                 //kollar om det går att slå ihop dom
-                if (previousPosition[1] + 1 == position[0])
+                if (previousPosition[1] + 1 == currentPosition[0])
                 {
-                    fixedValue = CombinePositions(previousPosition[0], position[1]);
-                    merged.Add(fixedValue);
+                    nextValueToAdd = CombinePositions(previousPosition[0], currentPosition[1]);
                 }
                 else
                 {
-                    merged.Add(position);
+                    nextValueToAdd = currentPosition;
                 }
+
+                mergedPortSpots.Add(nextValueToAdd);
 
                 //om det första värdet i båda arrayerna är samma
                 //har dom slagits ihop och då ska det föregående värdet
                 //inte vara kvar i listan
-                if (previousPosition[0] == fixedValue[0])
+                if (previousPosition[0] == nextValueToAdd[0])
                 {
-                    merged.Remove(previousPosition);
+                    mergedPortSpots.Remove(previousPosition);
                 }
             }
-            foreach(int[] mergedposition__ in merged)
+
+            //loopar igenom listan med de positioner som eventuellt har slagits ihop, och lägger till port.PortName
+            //för att kunna se vart ifrån platserna kom
+            foreach (int[] mergedSpot in mergedPortSpots)
             {
 
-                mergedPositions__fix.Add(new Positions(mergedposition__, p.Name));
+                mergedPositions.Add(new Position(mergedSpot, p.PortName));
             }
-            RemoveDuplicates(p);
+        }
+
+        /// <summary>
+        /// Rensar listan med gamla kajplatser
+        /// </summary>
+        public void ClearPositions()
+        {
+            mergedPositions.Clear();
         }
 
 
@@ -221,23 +219,12 @@ namespace HamnSimulering
 
         public void TryOldSpots(List<Boat> boats, Port port)
         {
+
+            //hur stor platsen är
             Func<int[], int> distanceBetweenNumbers = (values) =>
             {
                 return values[1] - values[0];
             };
-            List<int[]> portPositions = new List<int[]>();
-
-
-            var positionsToCheck = mergedPositions__fix.Where(pos => pos.Port == port.Name).ToList();
-            foreach(Positions positionToAdd in positionsToCheck)
-            {
-                portPositions.Add(positionToAdd.Position);
-            }
-
-            
-
-
-
 
             //här kollas hamnen om båten får plats på den plats som loopas
             Func<int, int, bool> allSpotsFree = (start, boatSize) =>
@@ -245,14 +232,14 @@ namespace HamnSimulering
                 int end = start + boatSize;
 
                 //om båtens storlek plus startvärdet är större än hamnens kapacitet 
-                if (end > port.SpotIsTaken.GetUpperBound(0))
+                if (end > port.OccupiedSpots.GetUpperBound(0))
                 {
                     return false;
                 }
                 for (int i = start; i <= end; i++)
                 {
                     //om hamnplatsen är upptagen
-                    if (port.SpotIsTaken[i] == true)
+                    if (port.OccupiedSpots[i] == true)
                     {
                         return false;
                     }
@@ -261,42 +248,48 @@ namespace HamnSimulering
                 return true;
             };
 
-            portPositions = portPositions.OrderBy(distanceBetweenNumbers).ToList();
 
-            foreach (int[] position in portPositions)
+            var positionsToCheck = mergedPositions.Where(pos => pos.Port == port.PortName)
+                                                         .Select(pos => pos.Spot)
+                                                         .OrderBy(distanceBetweenNumbers)
+                                                         .ToList();
+
+
+            foreach (int[] position in positionsToCheck)
             {
-                //
+                
                 int max = position[1];
-                foreach (Boat boat in boats)
+
+                List<Boat> boatsToCheck = boats.Where(boat => boat.AssignedSpot == null).ToList();
+
+                foreach (Boat boat in boatsToCheck)
                 {
-                    //om båten redan har en plats ska nästa båt kollas direkt
-                    if (boat.AssignedSpot != null)
-                    {
-                        continue;
-                    }
                     int start = position[0];
 
+                    if(start > max)
+                    {
+                        break;
+                    }
 
                     //array index 0, därför -1
                     int boatSize = (int)boat.Size - 1;
 
                     //eftersom listan med nya båtar är sorterade efter storleksordning kan man anta att
                     //nästa båt inte heller får plats, därav break
-                    if (start > max || !allSpotsFree(start, boatSize) || start + boatSize > max)
+                    bool boatIsTooBig = !allSpotsFree(start, boatSize) || start + boatSize > max;
+
+                    if (boatIsTooBig)
                     {
                         break;
                     }
 
 
-                    int rowboatsOnSpot = port.Boats.Count(row => row.AssignedSpot[0] == start && row is Rowboat);
-                    int rowboatsLeftToAssign = port.Boats.Count(boat => boat is Rowboat && boat.AssignedSpot == null);
+                    int rowboatsOnSpot = port.boats.Count(boat => boat.AssignedSpot[0] == start && boat is Rowboat);
+                    int rowboatsLeftToAssign = boatsToCheck.Count(boat => boat is Rowboat && boat.AssignedSpot == null);
+                    bool rowboatCanPark = boat is Rowboat && rowboatsOnSpot == 1 || !port.OccupiedSpots[start] && boat is Rowboat;
 
 
-
-
-
-
-                    if (boat is Rowboat && rowboatsOnSpot == 1 || !port.SpotIsTaken[start] && boat is Rowboat)
+                    if (rowboatCanPark)
                     {
                         //hur många roddbåtar som det är kvar och hur många det är på platsen, är det 
                         //redan en roddbåt på platsen så kommer inte det få plats en till, då plussas position[0] på med 1, så får nästa båt försöka klämma sig in
@@ -308,7 +301,7 @@ namespace HamnSimulering
                     }
 
                     //är platsen upptagen ska startpositionen för nästa båt bli 1 högre, 
-                    else if (port.SpotIsTaken[start])
+                    else if (port.OccupiedSpots[start])
                     {
                         position[0]++;
                         continue;
@@ -341,45 +334,45 @@ namespace HamnSimulering
                     }
                 }
             }
-
-
         }
-        public void GiveRowboatUnassignedSpot(List<Boat> rowboats, Port port)
+
+
+
+        /// <summary>
+        /// Så länge det finns plats och roddbåtar kommer loopen att köras tills den hittar en plats
+        /// </summary>
+        /// <param name="rowboats"></param>
+        /// <param name="port"></param>
+        public void GiveRowboatUnassignedSpot(List<Rowboat> rowboats, Port port)
         {
-
-
             int currentSpot = 0;
-
-            rowboats = rowboats.Where(rowboat => rowboat.AssignedSpot == null).ToList();
+            List<Rowboat> rowboatsToCheck = rowboats.Where(rowboat => rowboat.AssignedSpot == null).ToList();
             //medans det finns plats kvar och roddbåtar i listan
             //ska loopen köras
-            while (port.SpotsLeft > 0 && rowboats.Any())
+            while (port.SpotsLeft > 0 && rowboatsToCheck.Any())
             {
-                foreach (Boat rowboat in rowboats)
+                foreach (Rowboat rowboat in rowboatsToCheck)
                 {
-                    int rowboatsOnSpot = port.Boats.Count(row => row.AssignedSpot[0] == currentSpot && row is Rowboat);
+                    int rowboatsOnSpot = port.boats.Count(row => row.AssignedSpot[0] == currentSpot && row is Rowboat);
+                    bool currentSpotTaken = port.OccupiedSpots[currentSpot];
+                    //för att en roddbåt ska kunna parkera måste det antingen vara exakt 1 där eller så ska platsen vara ledig
+                    bool rowboatCanPark = rowboatsOnSpot == 1 || !currentSpotTaken;
 
-                    //om det får plats en roddbåt eller om hamnplatsen är ledig
-                    if (rowboatsOnSpot == 1 || !port.SpotIsTaken[currentSpot])
+
+                    if (rowboatCanPark)
                     {
                         rowboat.AssignedSpot = new int[1] { currentSpot };
                         port.AddBoat(rowboat);
                         continue;
                     }
-                    else
+                    else if(rowboatsOnSpot == 2 || currentSpotTaken)
                     {
                         break;
                     }
                 }
+
                 currentSpot++;
-                if (currentSpot > port.SpotIsTaken.GetUpperBound(0))
-                {
-                    break;
-                }
-                else
-                {
-                    rowboats = rowboats.Where(rowboat => rowboat.AssignedSpot == null).ToList();
-                }
+                rowboatsToCheck = rowboats.Where(rowboat => rowboat.AssignedSpot == null).ToList();
             }
         }
 
@@ -398,23 +391,19 @@ namespace HamnSimulering
         /// <returns></returns>
         public void TryAddFromBottom(List<Boat> boats, Port port)
         {
-            foreach (Boat boat in boats)
+            List<Boat> boatsToCheck = boats.Where(boat => boat.AssignedSpot == null).ToList();
+            foreach (Boat boat in boatsToCheck)
             {
-                if (boat.AssignedSpot != null)
-                {
-                    continue;
-                }
-
-
-
-                
+                //här borde det inte finnas några roddbåtar så jag castar om båtstorleken till en int
                 int spotsToTake = (int)boat.Size;
-                int currentSpot = port.SpotIsTaken.GetUpperBound(0);
+
+                //eftersom loopen börjar från slutet ska currentSpot vara arrayens max
+                int currentSpot = port.OccupiedSpots.GetUpperBound(0);
                 int spotsFound = 0;
 
                 for (int i = currentSpot; i >= 0; i--)
                 {
-                    bool spotTaken = port.SpotIsTaken[i];
+                    bool spotTaken = port.OccupiedSpots[i];
 
                     //platsen var upptagen
                     if (spotTaken)
@@ -443,6 +432,7 @@ namespace HamnSimulering
                 }
             }
         }
+
     }
 }
 
@@ -493,15 +483,102 @@ namespace HamnSimulering
 
 
 
+//List<int[]> FixPositions(List<int[]> positionsBeforeFix)
+//{
+//    List<int[]> fixedPositions = new List<int[]>();
+//    foreach (var pos in positionsBeforeFix)
+//    {
+//        if (pos.Length < 2)
+//        {
+//            fixedPositions.Add(new int[2] { pos[0], pos[0] });
+//        }
+//        else
+//        {
+//            fixedPositions.Add(pos);
+//        }
+//    }
+//    return fixedPositions;
+//}
+// public void GetPositions(Port p)
+//{
+//    //om första indexet är större än det andra har något blivit tokigt
+//    Func<int[], bool> errorCheck = (pos) =>
+//    {
+//        return pos[0] > pos[1];
+//    };
+
+//    //AssignedSpotAtHarbour[0] är första platsen som båten tar upp, så platserna sorteras på den för att när dom ska försöka slås ihop
+//    //hamnar de närliggande efter varandra i listan
+//    List<int[]> pos = p.RemovedBoats
+//                        .OrderBy(boat => boat.AssignedSpot[0])
+//                        .Select(value => value.AssignedSpot)
+//                        .ToList();
 
 
 
+//    //ger alla båtars plats[] 2 index ->
+//    removedBoatsPositions = FixPositions(pos, p);
+//    MergePositions__fix(p);
+//}
+
+///// <summary>
+///// "Lägger ihop" båtplatser om dom är brevid varandra<br />
+///// exempel, {4,5} och {6,7} blir då {4,7} som läggs in i en lista.<br />
+///// och nästa gång den loopar kommer den kolla om nästa array går<br />
+///// att lägga ihop med den förra arrayen, gör det inte det åker den oförändrad i listan.<br />
+///// (detta förutsätter att listan redan är sorterad)
+///// </summary>
+//void MergePositions__fix(Port p)
+//{
 
 
+//    List<int[]> position____fix = removedBoatsPositions.Where(pos => pos.Port == p.PortName).Select(pos => pos.Spot).ToList();
+//    //räknar helt enkelt ut hur mycket större det ena talet är, för att sedan sortera dom i storleksordning
 
 
+//    List<int[]> merged = new List<int[]>(); 
 
+//    int[] previousPosition = null;
+//    foreach (int[] position in position____fix)
+//    {
+//        //första gången den körs har den inget värde att jämföra med
+//        //så jag sätter värdet prevValue till det första i listan med positioner
+//        //och lägger in det i mergedPositions och fortsätter loopen
+//        if (previousPosition is null)
+//        {
+//            previousPosition = position;
+//            merged.Add(previousPosition);
+//            continue;
+//        }
+//        previousPosition = merged.LastOrDefault();
 
+//        int[] fixedValue = position;
+
+//        //kollar om det går att slå ihop dom
+//        if (previousPosition[1] + 1 == position[0])
+//        {
+//            fixedValue = CombinePositions(previousPosition[0], position[1]);
+//            merged.Add(fixedValue);
+//        }
+//        else
+//        {
+//            merged.Add(position);
+//        }
+
+//        //om det första värdet i båda arrayerna är samma
+//        //har dom slagits ihop och då ska det föregående värdet
+//        //inte vara kvar i listan
+//        if (previousPosition[0] == fixedValue[0])
+//        {
+//            merged.Remove(previousPosition);
+//        }
+//    }
+//    foreach(int[] mergedposition__ in merged)
+//    {
+
+//        mergedRemovedPositions.Add(new Position(mergedposition__, p.PortName));
+//    }
+//}
 
 
 

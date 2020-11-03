@@ -10,40 +10,40 @@ namespace HamnSimulering
 {
     class Simulate
     {
+        //public static Harbour harbour = new Harbour();
         public static Harbour harbour = new Harbour();
         public static List<Boat> waitingBoats = new List<Boat>();
 
-        DispatcherTimer automaticTimer;
-        public static int boatsRejected = 0;
-        public static int boatsAccepted = 0;
-        public static int daysPassed = 0;
-        public static int boatsPerDay = 5;
-        static List<Boat> rowboatsWaiting;
-        static List<Boat> otherBoatsWaiting;
-        static Func<Boat, bool> NotAssigned => (boat) => boat.AssignedSpot == null;
-        static Action<List<Boat>> ShowWho => (boats) => {
-            string info = "";
-            if (boats.Any())
-            {
-                foreach (Boat boat in boats)
-                {
-                    info += $"{boat.GetBoatType()} {boat.ModelID} (size {boat.Size} spots) did not fit!\n";
-                }
-                MessageBox.Show(info);
-            }
-        };
+        public static int BoatsRejected { get; set; }
+        public static int BoatsAccepted { get; set; }
+        public static int DaysPassed { get; set; }
+        public static int BoatsPerDay { get; set; }
 
 
 
-        public static void SetAutoTimerSpeed(int seconds, int milliseconds)
+
+
+
+        public static void OneDay(bool isAuto)
         {
 
-        }
+            //vilka båtar som inte har fått en plats tilldelad
+            Func<Boat, bool> notAssigned = (boat) => boat.AssignedSpot == null;
 
-        public static void OneDay()
-        {
-            rowboatsWaiting = waitingBoats.Where(boat => boat is Rowboat).ToList();
-            otherBoatsWaiting = waitingBoats.Where(boat => !(boat is Rowboat)).OrderBy(boat => boat.Size).ToList();
+            //visar en ruta med vilka båtar som inte fick plats
+            Action<List<Boat>> showWho = (boats) => {
+                string info = "";
+                    foreach (Boat boat in boats)
+                    {
+                        info += $"{boat.GetBoatType()} {boat.ModelID} (size {boat.Size} spots) did not fit!\n";
+                    }
+                    MessageBox.Show(info);
+                
+            };
+
+            List<Boat> boatsWaitingSorted = waitingBoats.OrderBy(boat => boat.Size).ToList();
+            List<Rowboat> rowboatsWaiting = waitingBoats.OfType<Rowboat>().ToList();
+            List<Boat> otherBoatsWaiting = waitingBoats.Where(boat => !(boat is Rowboat)).OrderBy(boat => boat.Size).ToList();
             
 
 
@@ -51,51 +51,55 @@ namespace HamnSimulering
             //lägger till en dag på varje båt om det finns några vid kajen
             harbour.AddOneDay();
 
+            //hämtar positionerna från de båtarna som lämnat hamnen nyligen
+            harbour.GetPositionsFromRemovedBoats();
 
-            harbour.GetPositions();
+            //försöker dela ut de platser GetPositions() hämtade
+            harbour.TestOldSpots(boatsWaitingSorted);
 
-
-            harbour.TestOldSpots(waitingBoats);
-
+            //lägger till roddbåtar först
             harbour.AddRowBoats(rowboatsWaiting);
             
+
+            //sedan de andra båtarna
             harbour.AddFromBottom(otherBoatsWaiting);
             
+
+            //rensar listorna med positioner
             harbour.ClearPositions();
 
+            //skriver ut lediga platser
+            harbour.ListFreeSpots();
 
 
-            boatsRejected += waitingBoats.Count(NotAssigned);
-            boatsAccepted += boatsPerDay - waitingBoats.Count(NotAssigned);
+            //vilka båtar som inte har en tilldelad plats
+
+            int rejectedBoats = waitingBoats.Count(notAssigned);
+            BoatsRejected += rejectedBoats;
+
+            //vilka båtar som har en tilldelad plats
+            BoatsAccepted += BoatsPerDay - rejectedBoats;
 
 
             //visa vilka båtar som inte fick plats om inte automatic är true
-            if (!MainWindow.automatic)
+            if (!isAuto && rejectedBoats > 0)
             {
-                ShowWho(waitingBoats.Where(NotAssigned).ToList());
+                showWho(waitingBoats.Where(notAssigned).ToList());
             }
 
             //rensar väntande båtar och lägger till nya
             waitingBoats.Clear();
-            AddToWaiting();
+            AddBoats();
 
-            ///////////////////////////////här ändrade jag updatedata commented !!!
-            //uppdatera datatabellerna.
+
+            //uppdaterar datatabellen för listan av väntande båtar.
             BoatData.UpdateVisitors(waitingBoats);
 
 
 
-            //UpdateData(leftHarbour);
-            //UpdateData(rightHarbour);
-
-
-            daysPassed++;
-
+            DaysPassed++;
 
         }
-
-
-
 
         public static void ClearWaiting()
         {
@@ -103,22 +107,16 @@ namespace HamnSimulering
         }
 
 
-        
-
-        public static void AddToWaiting(int? ammount=null)
+        static void AddBoats()
         {
-            if (ammount != null)
-            {
-                boatsPerDay = (int)ammount;
-            }
+
             //lägger till eller tar bort båtar om inte antalet båtar i listan
             //är samma som båtar per dag
-            while(waitingBoats.Count != boatsPerDay)
+            while (waitingBoats.Count != BoatsPerDay)
             {
-                if(waitingBoats.Count < boatsPerDay)
+                if (waitingBoats.Count < BoatsPerDay)
                 {
-
-                    AddBoats(boatsPerDay);
+                    waitingBoats.Add(Generate.RandomBoat());
                 }
                 else
                 {
@@ -126,32 +124,50 @@ namespace HamnSimulering
                     waitingBoats.Remove(boat);
                 }
             }
-            //och uppdaterar tabellen när den är p
+            //och uppdaterar tabellen
             BoatData.UpdateVisitors(waitingBoats);
         }
 
-        public static void AddBoats(int numberOfBoats)
+        public static void AddToWaiting(int ammount)
         {
-            
-            for (int i = 1; i <= numberOfBoats; i++)
-            {
-                waitingBoats.Add(Generate.RandomBoat());
-            }
+            BoatsPerDay = ammount;
+            AddBoats();
         }
-        public static void UpdateData(Port port)
-        {
-            BoatData.ListFreeSpotsPort(port);
 
-            BoatData.UpdatePort(port);
-            //BoatData.UpdateHarbour(harbour);
-            //BoatData.ListFreeSpots(harbour);
-        }
     }
 }
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//public static void UpdateData(Port port)
+//{
+//    BoatData.ListFreeSpotsPort(port);
+
+//    BoatData.UpdatePort(port);
+//}
 
 
 
