@@ -100,7 +100,7 @@ namespace HamnSimulering
         void UpdateWaitingBoats()
         {
 
-            waitingBoatsLabel.ToolTip = BoatData.boatStats(waitingBoats);
+            waitingBoatsLabel.ToolTip = BoatData.PortStats(waitingBoats);
             waitingBoatsLabel.Content = "Väntande båtar: " + waitingBoats.Count();
             newBoatsLabel.Content = "Nya båtar per dag: " + Simulate.BoatsPerDay;
         }
@@ -108,8 +108,8 @@ namespace HamnSimulering
 
         private void UpdateStatsLabels()
         {
-            var percentRejected = BoatData.calculatePercentage(Simulate.BoatsAccepted, Simulate.BoatsRejected);
-            var percentAccepted = BoatData.calculatePercentage(Simulate.BoatsRejected, Simulate.BoatsAccepted);
+            var percentRejected = BoatData.CalculatePercentage(Simulate.BoatsAccepted, Simulate.BoatsRejected);
+            var percentAccepted = BoatData.CalculatePercentage(Simulate.BoatsRejected, Simulate.BoatsAccepted);
 
 
             numberOfDaysLabel.Content = "Passerade dagar: " + Simulate.DaysPassed;
@@ -123,7 +123,7 @@ namespace HamnSimulering
             leftPortBoatsLabel.Content = "Antal båtar vid kajen: " + leftPort.Boats.Count();
             leftPortSpotsRemainingLabel.Content = "Lediga platser: " + leftPort.SpotsLeft;
 
-            leftPortBoatsLabel.ToolTip = BoatData.boatStats(leftPort.Boats);
+            leftPortBoatsLabel.ToolTip = BoatData.PortStats(leftPort.Boats);
             leftPortSpotsRemainingLabel.ToolTip = BoatData.FreeSpotsInPort(leftPort);
         }
         private void UpdateRightPortLabels()
@@ -132,7 +132,7 @@ namespace HamnSimulering
             rightPortBoatsLabel.Content = "Antal båtar vid kajen: " + rightPort.Boats.Count();
             rightPortSpotsRemainingLabel.Content = "Lediga platser: " + rightPort.SpotsLeft;
 
-            rightPortBoatsLabel.ToolTip = BoatData.boatStats(rightPort.Boats);
+            rightPortBoatsLabel.ToolTip = BoatData.PortStats(rightPort.Boats);
             rightPortSpotsRemainingLabel.ToolTip = BoatData.FreeSpotsInPort(rightPort);
         }
 

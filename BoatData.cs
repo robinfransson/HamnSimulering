@@ -14,7 +14,7 @@ namespace HamnSimulering
         /// <summary>
         /// Räknar ut medelvikten av alla båtar i listan.
         /// </summary>
-        public static Func<List<Boat>, float> averageWeight = (port) =>
+        public static Func<List<Boat>, float> AverageWeight = (port) =>
         {
             if (port.Any())
             {
@@ -31,23 +31,23 @@ namespace HamnSimulering
         /// <summary>
         /// Får ta in antalen som float för att kunna dividera dom direkt.
         /// </summary>
-        public static Func<float, float, float> calculatePercentage =(numerator, denominator) => (float)Math.Round(100 - (numerator / (denominator + numerator)) * 100, 1);
+        public static Func<float, float, float> CalculatePercentage =(numerator, denominator) => (float)Math.Round(100 - (numerator / (denominator + numerator)) * 100, 1);
 
-        public static Func<List<Boat>, float> averageSpeed = (boats) => (float)Math.Round(boats.Sum(boat => boat.TopSpeedKMH) / boats.Count, 2);
+        public static Func<List<Boat>, float> AverageSpeed = (boats) => (float)Math.Round(boats.Sum(boat => boat.TopSpeedKMH) / boats.Count, 2);
 
 
         /// <summary>
         /// Skapar en sträng med statistik om den aktuella listan med båtar.
         /// </summary>
-        public static Func<List<Boat>, string> boatStats = (port) => 
+        public static Func<List<Boat>, string> PortStats = (port) => 
             $"Roddbåtar: {port.Count(boat => boat is Rowboat)} \n" +
             $"Motorbåtar: {port.Count(boat => boat is Motorboat)} \n" +
             $"Segelbåtar: {port.Count(boat => boat is Sailboat)} \n" +
             $"Katamaraner: {port.Count(boat => boat is Catamaran)} \n" +
             $"Lastfartyg: {port.Count(boat => boat is Cargoship)} \n\n" +
-            $"Snitthastighet: {averageSpeed(port)} km/h\n" +
+            $"Snitthastighet: {AverageSpeed(port)} km/h\n" +
             $"Totalvikt: {port.Sum(boat => boat.Weight)} kg\n" +
-            $"Snittvikt: {averageWeight(port)} kg\n";
+            $"Snittvikt: {AverageWeight(port)} kg\n";
 
         public static string FreeSpotsInPort(Port port)
         {

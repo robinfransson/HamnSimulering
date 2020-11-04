@@ -56,7 +56,7 @@ namespace HamnSimulering
 
 
 
-        public Boat(string id, int weight, int topSpeedKnots, int daysSpent = 0, int[] spots = null)
+        public Boat(string id, int weight, int topSpeedKnots, int daysSpent = 0, int[] spots = null) //dagar och plats sätts vid laddning från fil
         {
             AssignedSpot = spots;
             DaysSpentAtHarbour = daysSpent;

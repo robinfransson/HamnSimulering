@@ -358,11 +358,7 @@ namespace HamnSimulering
                     rowboat.AssignedSpot = otherRowboatsSpot;
                     port.AddBoat(rowboat);
 
-                    dockedRowboatsWithSpace = port.Boats.Where(notAssigned).OfType<Rowboat>() //uppdaterar listan så att inte nästa roddbåt får samma plats
-                                                                 .GroupBy(boat => boat.AssignedSpot[0])
-                                                                 .Where(group => group.Count() < 2) 
-                                                                 .Select(boatGroup => boatGroup.FirstOrDefault())
-                                                                 .ToList();
+                    dockedRowboatsWithSpace.Remove(otherRowboat); //tar bort den ur listan så inte nästa får samma plats
                 }
                 rowboatsToCheck = rowboatsToCheck.Where(notAssignedRowboat).ToList();
 

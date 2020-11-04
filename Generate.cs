@@ -31,6 +31,8 @@ namespace HamnSimulering
             string ID;
             string prefix;
             int specialProperty;
+
+
             switch (randomBoatType)
             {
 

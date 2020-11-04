@@ -58,7 +58,7 @@ namespace HamnSimulering
         /// </summary>
         /// <param name="boat">Båten som tar mer än 1 plats</param>
         /// <param name="spotTaken">true för upptagen, false för ledig</param>
-        void UpdatePort(Boat boat, bool spotTaken)
+        void UpdatePortSpot(Boat boat, bool spotTaken)
         {
             int firstSpot = boat.AssignedSpot[0]; //vart loopen ska börja och sluta
             int lastSpot = boat.AssignedSpot.Length > 1 ? boat.AssignedSpot[1] : boat.AssignedSpot[0]; //är det en båt med bara 1 plats tilldelad blir sista platsen att kolla samma som första
@@ -94,7 +94,7 @@ namespace HamnSimulering
         public void Remove(Boat boat)
         {
             Boats.Remove(boat);
-            UpdatePort(boat, false);
+            UpdatePortSpot(boat, false);
             BoatData.RemoveBoat(boat, this.PortName);
             //BoatData.ListEmptyFromBoatPosition(this, boat);
         }
@@ -106,7 +106,7 @@ namespace HamnSimulering
         public void AddBoat(Boat boat)
         {
             Boats.Add(boat);
-            UpdatePort(boat, true);
+            UpdatePortSpot(boat, true);
             BoatData.UpdatePort(this, boat);
             //BoatData.ListEmptyFromBoatPosition(this, boat);
 
@@ -118,7 +118,7 @@ namespace HamnSimulering
         {
             foreach (Boat boat in Boats)
             {
-                UpdatePort(boat, true);
+                UpdatePortSpot(boat, true);
             }
         }
     }
