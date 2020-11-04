@@ -41,9 +41,6 @@ namespace HamnSimulering
                 
             };
 
-            List<Boat> boatsWaitingSorted = waitingBoats.OrderBy(boat => boat.Size).ToList();
-            List<Rowboat> rowboatsWaiting = waitingBoats.OfType<Rowboat>().ToList();
-            List<Boat> otherBoatsWaiting = waitingBoats.Where(boat => !(boat is Rowboat)).OrderBy(boat => boat.Size).ToList();
             
 
 
@@ -52,21 +49,23 @@ namespace HamnSimulering
             harbour.AddOneDay();
 
             //hämtar positionerna från de båtarna som lämnat hamnen nyligen
-            harbour.GetPositionsFromRemovedBoats();
+            harbour.TryReusingPortSpots(waitingBoats);
 
             //försöker dela ut de platser GetPositions() hämtade
-            harbour.TestOldSpots(boatsWaitingSorted);
+            //harbour.TestSpotsFromRemovedBoats(waitingBoats);
 
-            //lägger till roddbåtar först
-            harbour.AddRowBoats(rowboatsWaiting);
-            
+            //lägger till roddbåtar brevid andra roddbåtar
+            harbour.TryPlaceRowboats(waitingBoats);
+
+            //lägger till roddbåtar på nya platser
+            harbour.AddRowboatsOnEmptySpot(waitingBoats);
 
             //sedan de andra båtarna
-            harbour.AddFromBottom(otherBoatsWaiting);
+            harbour.GiveBoatsUnassignedPortSpots(waitingBoats);
             
 
-            //rensar listorna med positioner
-            harbour.ClearPositions();
+            ////rensar listorna med positioner
+            //harbour.ClearPositions();
 
             //skriver ut lediga platser
             harbour.ListFreeSpots();
@@ -79,7 +78,6 @@ namespace HamnSimulering
 
             //vilka båtar som har en tilldelad plats
             BoatsAccepted += BoatsPerDay - rejectedBoats;
-
 
             //visa vilka båtar som inte fick plats om inte automatic är true
             if (!isAuto && rejectedBoats > 0)
@@ -95,7 +93,7 @@ namespace HamnSimulering
             //uppdaterar datatabellen för listan av väntande båtar.
             BoatData.UpdateVisitors(waitingBoats);
 
-
+            harbour.ListFreeSpots();
 
             DaysPassed++;
 

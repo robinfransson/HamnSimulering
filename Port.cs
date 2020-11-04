@@ -9,11 +9,15 @@ namespace HamnSimulering
 {
     class Port
     {
-        public List<Boat> boats = new List<Boat>();
+        public List<Boat> Boats = new List<Boat>();
 
         //använder namn till kajen för olika saker, bl.a är det tabellnamnet i datasetet, för att se vilken kaj båten
         //tillhör, men den informationen behöver jag endast när de gamla platserna ska delas ut
         public string PortName { get; set; }
+        public bool[] OccupiedSpots { get; set; }
+
+        public List<Boat> RemovedBoats = new List<Boat>();
+        public float SpotsLeft => totalSpots - Boats.Sum(boat => boat.Size);
 
         const int totalSpots = 32;
         public int Spots { 
@@ -21,10 +25,10 @@ namespace HamnSimulering
                 return totalSpots;
             }
         }
-        public bool[] OccupiedSpots { get; set; }
 
-        public List<Boat> RemovedBoats = new List<Boat>();
-        public float SpotsLeft => totalSpots - boats.Sum(boat => boat.Size);
+
+
+
 
         public Port(string name)
         {
@@ -40,7 +44,7 @@ namespace HamnSimulering
         /// </summary>
         public void CheckTimeOnBoats()
         {
-            RemovedBoats = boats.Where(boat => boat.DaysSpentAtHarbour == boat.MaxDaysAtHarbour).ToList();
+            RemovedBoats = Boats.Where(boat => boat.DaysSpentAtHarbour == boat.MaxDaysAtHarbour).ToList();
 
             foreach (Boat boatToRemove in RemovedBoats)
             {
@@ -53,33 +57,31 @@ namespace HamnSimulering
         /// dvs om båten lämnar blir den false, om den kommer till bryggan blir den true
         /// </summary>
         /// <param name="boat">Båten som tar mer än 1 plats</param>
-        /// <param name="value">true för upptagen, false för ledig</param>
-        void UpdatePort(Boat boat, bool value)
+        /// <param name="spotTaken">true för upptagen, false för ledig</param>
+        void UpdatePort(Boat boat, bool spotTaken)
         {
-            //vart loopen ska börja och sluta
-            int firstSpot = boat.AssignedSpot[0];
-
-            //är det en båt med bara 1 plats tilldelad blir sista platsen att kolla samma som första
-            int lastSpot = boat.AssignedSpot.Length > 1 ? boat.AssignedSpot[1] : boat.AssignedSpot[0];
+            int firstSpot = boat.AssignedSpot[0]; //vart loopen ska börja och sluta
+            int lastSpot = boat.AssignedSpot.Length > 1 ? boat.AssignedSpot[1] : boat.AssignedSpot[0]; //är det en båt med bara 1 plats tilldelad blir sista platsen att kolla samma som första
 
 
-            if (boat is Rowboat && value == false)
+            File.AppendAllText("log.log", $"Updated spots {firstSpot}-{lastSpot} from boat {boat.ModelID} in {this.PortName} ({(spotTaken == true ? "(added)" : "(removed)")})\n");
+
+            if (boat is Rowboat && spotTaken == false)
             {
                 //finns det en roddbåt på platsen och value är false
                 //blir value = true
-                bool anotherRowboat = boats
+                bool anotherRowboat = Boats
                                      .Any(otherBoat => otherBoat.AssignedSpot[0] == firstSpot && otherBoat.ModelID != boat.ModelID && otherBoat is Rowboat);
 
-                value = anotherRowboat;
+                spotTaken = anotherRowboat;
             }
 
 
             for (int i = firstSpot; i <= lastSpot; i++)
             {
-                OccupiedSpots[i] = value;
+                OccupiedSpots[i] = spotTaken;
             }
 
-            File.AppendAllText("log.log", $"Updated spots {firstSpot}-{lastSpot} from boat {boat.ModelID}\n");
         }
 
 
@@ -91,10 +93,10 @@ namespace HamnSimulering
         /// <param name="boat"></param>
         public void Remove(Boat boat)
         {
-            boats.Remove(boat);
+            Boats.Remove(boat);
             UpdatePort(boat, false);
             BoatData.RemoveBoat(boat, this.PortName);
-            BoatData.ListFreeSpotsPort_fix(this, boat);
+            BoatData.UpdatePartOfPort(this, boat);
         }
 
 
@@ -103,10 +105,10 @@ namespace HamnSimulering
 
         public void AddBoat(Boat boat)
         {
-            boats.Add(boat);
+            Boats.Add(boat);
             UpdatePort(boat, true);
             BoatData.UpdatePort(this, boat);
-            BoatData.ListFreeSpotsPort_fix(this, boat);
+            BoatData.UpdatePartOfPort(this, boat);
 
         }
         /// <summary>
@@ -114,7 +116,7 @@ namespace HamnSimulering
         /// </summary>
         public void UpdateSpots()
         {
-            foreach (Boat boat in boats)
+            foreach (Boat boat in Boats)
             {
                 UpdatePort(boat, true);
             }

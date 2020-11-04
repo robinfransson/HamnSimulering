@@ -11,6 +11,7 @@ namespace HamnSimulering
 {
     class SaveFileManager
     {
+
         public static void Save(List<Boat> boats, string fileName)
         {
             File.WriteAllLines(fileName, DataToStore(boats));
@@ -24,6 +25,9 @@ namespace HamnSimulering
                 File.Delete(file);
             }
         }
+
+
+
         public static List<Boat> Load(string fileName)
         {
             if (!File.Exists(fileName))
@@ -38,9 +42,9 @@ namespace HamnSimulering
                 }
                 catch(Exception e)
                 {
-                    MessageBox.Show(e.ToString() + "\n" + fileName);
+                    MessageBox.Show(e.Message + "\n" + fileName);
+                    return new List<Boat>();
                 }
-                return new List<Boat>();
             }
         }
 
@@ -83,27 +87,27 @@ namespace HamnSimulering
             Simulate.DaysPassed = daysPassed;
         }
 
+        static Boat AddBoatFromFile(string id, int weight, int topSpeed, int specialProp, int daysAtHarbour, int[] spotsTaken)
+        {
+            char boatModel = id[0];//första bokstaven i modell id
+            return boatModel switch
+            {
+                'R' => new Rowboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
+                'M' => new Motorboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
+                'S' => new Sailboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
+                'L' => new Cargoship(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
+                'K' => new Catamaran(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
+                _ => throw new NotImplementedException("Unsupported boattype! Model: " + id),
+            };
+        }
+
         static List<Boat> LoadFromFile(string fileName)
         {
-            Func<string, int, int, int, int, int[], Boat> addBoat = (id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken) =>
-            {
-                char boatModel = id[0];//första bokstaven i modell id
-                return (boatModel) switch 
-                {
-                    'R' => new Rowboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
-                    'M' => new Motorboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
-                    'S' => new Sailboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
-                    'L' => new Cargoship(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
-                    'K' => new Catamaran(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
-                    //default
-                    _ => throw new NotImplementedException("Unsupported boattype! Model: " + id),
-                };
-            };
-
-
+            
             List<Boat> loadedFromFile = new List<Boat>();
 
-            //skippar första raden för att det är en rad som visar hur 
+            //skippar första raden för att det är en rad som visar 
+            //vilket format datat är sparat i
             string[] myFile = File.ReadAllLines(fileName).Skip(1).ToArray();
 
 
@@ -128,7 +132,7 @@ namespace HamnSimulering
                     spots = spotsTaken.GetUpperBound(0) < 1 ? new int[1] { Int32.Parse(spotsTaken[0]) } : new int[2] { Int32.Parse(spotsTaken[0]), Int32.Parse(spotsTaken[1]) };
                 }
                 
-                loadedFromFile.Add(addBoat(ModelID, weight, topSpeedKnots, specialProperty, daysSpent, spots));
+                loadedFromFile.Add(AddBoatFromFile(ModelID, weight, topSpeedKnots, specialProperty, daysSpent, spots));
             }
             return loadedFromFile;
         }
@@ -136,7 +140,7 @@ namespace HamnSimulering
         static string[] DataToStore(List<Boat> boats)
         {
             //antalet båtar som ska sparas
-            int saveDataLength = boats.Count();
+            int saveDataLength = boats.Count;
             //plussar på 1 för att jag ska spara en rad med formatet så det är lättare att förstå  
             //hur datat sparas
             string[] saveData = new string[saveDataLength+1];
@@ -197,8 +201,11 @@ namespace HamnSimulering
 
         public static void SaveStatistics(string fileName)
         {
-            string statsToSave = $"days passed={Simulate.DaysPassed}\nboats rejected={Simulate.BoatsRejected}\nboats accepted={Simulate.BoatsAccepted}\nboats per day={Simulate.BoatsPerDay}";
-            File.WriteAllText(fileName, statsToSave);
+            string[] statsToSave = { $"days passed={Simulate.DaysPassed}", 
+                                     $"boats rejected={Simulate.BoatsRejected}", 
+                                     $"boats accepted={Simulate.BoatsAccepted}", 
+                                     $"boats per day={Simulate.BoatsPerDay}"};
+            File.WriteAllLines(fileName, statsToSave);
         }
     }
 }

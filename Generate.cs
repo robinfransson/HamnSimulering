@@ -90,7 +90,7 @@ namespace HamnSimulering
             char[] allowedLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
             for (int i = 0; i < 3; i++)
             {
-                int index = rand.Next(0, allowedLetters.GetUpperBound(0) + 1);
+                int index = rand.Next(0, allowedLetters.Length);
                 prefix += allowedLetters[index];
             }
             return prefix;

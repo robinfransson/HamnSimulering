@@ -10,13 +10,81 @@ namespace HamnSimulering
     class BoatData
     {
 
+
+        /// <summary>
+        /// Räknar ut medelvikten av alla båtar i listan.
+        /// </summary>
+        public static Func<List<Boat>, float> averageWeight = (port) =>
+        {
+            if (port.Any())
+            {
+                return port.Sum(boat => boat.Weight) / port.Count;
+            }
+            else
+            {
+                return 0;
+            }
+
+        };
+
+
+        /// <summary>
+        /// Får ta in antalen som float för att kunna dividera dom direkt.
+        /// </summary>
+        public static Func<float, float, float> calculatePercentage =(numerator, denominator) => (float)Math.Round(100 - (numerator / (denominator + numerator)) * 100, 1);
+
+        public static Func<List<Boat>, float> averageSpeed = (boats) => (float)Math.Round(boats.Sum(boat => boat.TopSpeedKMH) / boats.Count, 2);
+
+
+        /// <summary>
+        /// Skapar en sträng med statistik om den aktuella listan med båtar.
+        /// </summary>
+        public static Func<List<Boat>, string> boatStats = (port) => 
+            $"Roddbåtar: {port.Count(boat => boat is Rowboat)} \n" +
+            $"Motorbåtar: {port.Count(boat => boat is Motorboat)} \n" +
+            $"Segelbåtar: {port.Count(boat => boat is Sailboat)} \n" +
+            $"Katamaraner: {port.Count(boat => boat is Catamaran)} \n" +
+            $"Lastfartyg: {port.Count(boat => boat is Cargoship)} \n\n" +
+            $"Snitthastighet: {averageSpeed(port)} km/h\n" +
+            $"Totalvikt: {port.Sum(boat => boat.Weight)} kg\n" +
+            $"Snittvikt: {averageWeight(port)} kg\n";
+
+        public static string FreeSpotsInPort(Port port)
+        {
+            Func<Boat, int, bool> rowboatsOnSpot = (boat, current) => boat is Rowboat && boat.AssignedSpot[0] == current;
+            string freeSpots = "Lediga platser:\n";
+            int currentSpot = 0;
+            foreach (bool spotTaken in port.OccupiedSpots)
+            {
+                if (spotTaken && port.Boats.Count(boat => rowboatsOnSpot(boat, currentSpot)) == 1)
+                {
+                    freeSpots += $"({currentSpot + 1})\n";
+                }
+                else if (!spotTaken)
+                {
+                    freeSpots += (currentSpot + 1) + "\n";
+                }
+                currentSpot++;
+            }
+            return freeSpots;
+        }
+
+
+
+
+
         static DataSet boatInfo = new DataSet("BoatInfo");
+
+
+
+
 
         public static void Update(Port port)
         {
-            ListFreeSpotsPort(port);
+            ListAllFreeSpotsInPort(port);
             UpdatePort(port);
         }
+
 
 
         /// <summary>
@@ -26,8 +94,6 @@ namespace HamnSimulering
         /// <returns></returns>
         public static DataView BoatDataViewer(string tableName)
         {
-            //i brist på bättre lösning
-            //väntande båtar behöver inte sorteras på något vis
             if (tableName == "WaitingBoats")
             {
                 return boatInfo.Tables[tableName].DefaultView;
@@ -54,7 +120,7 @@ namespace HamnSimulering
         {
                 DataTable portTable = new DataTable
                 {
-                    //alla kolumner får typen sträng pga att det inte endast är nummer som läggs in
+                    //alla kolumner får datatypen sträng pga att det inte endast är nummer som läggs in
                     Columns = { { "Plats", typeof(string) }, 
                                 { "Båttyp", typeof(string) }, 
                                 { "Vikt", typeof(string) },
@@ -169,8 +235,12 @@ namespace HamnSimulering
                 MessageBox.Show(e.Message + $"{boat.GetSpot} {boat.ModelID} {boat.GetBoatType()}");
             }
         }
-
-        public static void ListFreeSpotsPort_fix(Port port, Boat boat)
+        /// <summary>
+        /// Listar båten som ska tas borts platser som lediga 
+        /// </summary>
+        /// <param name="port"></param>
+        /// <param name="boat"></param>
+        public static void UpdatePartOfPort(Port port, Boat boat)
         {
 
             DataTable table = boatInfo.Tables[port.PortName];
@@ -181,6 +251,7 @@ namespace HamnSimulering
             for(int currentRow = startRow; currentRow <= endRow; currentRow++)
             {
                 bool spotTaken = port.OccupiedSpots[currentRow];
+                //kollar om det redan finns en rad listad som ledig
                 if (!spotTaken && table.Select($"Plats = '{currentRow}' AND Båttyp = 'Ledigt'").FirstOrDefault() == null)
                 {
                     freeSpot = table.NewRow();
@@ -194,7 +265,7 @@ namespace HamnSimulering
 
 
 
-        public static void ListFreeSpotsPort(Port port)
+        public static void ListAllFreeSpotsInPort(Port port)
         {
 
             DataTable table = boatInfo.Tables[port.PortName];
@@ -224,7 +295,7 @@ namespace HamnSimulering
             DataTable table = boatInfo.Tables[port.PortName];
             if (boat == null) // om boat är null har jag bestämt att det är då den laddas från fil
             {
-                foreach (Boat b in port.boats)
+                foreach (Boat b in port.Boats)
                 {
                     UpdateSingleBoat(table, b);
                 }
@@ -243,12 +314,14 @@ namespace HamnSimulering
             DataRow emptySpot;
             for (int i = start; i <= end; i++)
             {
+                //tar bort raderna som är listade som lediga
                 emptySpot = table.Select($"Plats = '{i}' AND Båttyp = 'Ledigt'").FirstOrDefault();
                 if (emptySpot != null)
                 {
                     table.Rows.Remove(emptySpot);
                 }
             }
+            //lägger till båten i tabellen
             AddBoatToTable(table, boat);
         }
 
@@ -261,6 +334,7 @@ namespace HamnSimulering
         public static void AddTimeToBoat(Boat boat, string tableName)
         {
             DataTable table = boatInfo.Tables[tableName];
+            //väljer båtens rad i tabellen och ändrar tiden vid hamnen
             DataRow currentBoat = table.Select($"Nr = '{boat.ModelID}' AND Vikt = '{boat.Weight} kg'").FirstOrDefault();
             if (currentBoat != null)
             {
