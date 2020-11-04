@@ -96,7 +96,7 @@ namespace HamnSimulering
             Boats.Remove(boat);
             UpdatePort(boat, false);
             BoatData.RemoveBoat(boat, this.PortName);
-            BoatData.UpdatePartOfPort(this, boat);
+            //BoatData.ListEmptyFromBoatPosition(this, boat);
         }
 
 
@@ -108,7 +108,7 @@ namespace HamnSimulering
             Boats.Add(boat);
             UpdatePort(boat, true);
             BoatData.UpdatePort(this, boat);
-            BoatData.UpdatePartOfPort(this, boat);
+            //BoatData.ListEmptyFromBoatPosition(this, boat);
 
         }
         /// <summary>

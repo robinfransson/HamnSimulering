@@ -55,7 +55,7 @@ namespace HamnSimulering
             //harbour.TestSpotsFromRemovedBoats(waitingBoats);
 
             //lägger till roddbåtar brevid andra roddbåtar
-            harbour.TryPlaceRowboats(waitingBoats);
+            harbour.PlaceRowboatsOnOccupiedSpots(waitingBoats);
 
             //lägger till roddbåtar på nya platser
             harbour.AddRowboatsOnEmptySpot(waitingBoats);
@@ -105,7 +105,7 @@ namespace HamnSimulering
         }
 
 
-        static void AddBoats()
+        public static void AddBoats()
         {
 
             //lägger till eller tar bort båtar om inte antalet båtar i listan

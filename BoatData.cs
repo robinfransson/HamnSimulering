@@ -240,7 +240,7 @@ namespace HamnSimulering
         /// </summary>
         /// <param name="port"></param>
         /// <param name="boat"></param>
-        public static void UpdatePartOfPort(Port port, Boat boat)
+        public static void ListEmptyFromBoatPosition(Port port, Boat boat)
         {
 
             DataTable table = boatInfo.Tables[port.PortName];

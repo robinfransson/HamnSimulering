@@ -48,6 +48,10 @@ namespace HamnSimulering
 
             newBoatsSlider.Value = Simulate.BoatsPerDay;
 
+            if (!waitingBoats.Any())
+            {
+                Simulate.AddBoats();
+            }
 
 
         }
@@ -161,10 +165,11 @@ namespace HamnSimulering
 
 
                 Simulate.waitingBoats = SaveFileManager.Load("waiting.txt");
+                
                 waitingBoats = Simulate.waitingBoats;
 
-                
-                
+
+
                 if (leftPort.Boats.Any())
                 {
                     leftPort.UpdateSpots();

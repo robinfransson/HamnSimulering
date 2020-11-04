@@ -18,6 +18,7 @@ namespace HamnSimulering
 
         Func<Boat, bool> boatIsRowboat = (boat) => boat is Rowboat;
         Func<Boat, int, bool> anotherBoatOnSameSpot = (boat, spot) => boat.AssignedSpot[0] == spot;
+        Func<Boat, int, bool> anotherRowboatOnSameSpot = (boat, spot) => boat.AssignedSpot[0] == spot && boat is Rowboat;
         Func<Boat, bool> notAssigned = (boat) => boat.AssignedSpot == null;
         Func<Rowboat, bool> notAssignedRowboat = (rowboat) => rowboat.AssignedSpot == null;
         Func<Boat, bool> isSmallBoat = (boat) => boat.AssignedSpot.Length == 1;
@@ -89,7 +90,7 @@ namespace HamnSimulering
         /// Placerar ut roddbåtar brevid varandra 
         /// </summary>
         /// <param name="boats"></param>
-        public void TryPlaceRowboats(List<Boat> boats)
+        public void PlaceRowboatsOnOccupiedSpots(List<Boat> boats)
         {
             foreach (Port port in Ports)
             {
@@ -212,7 +213,6 @@ namespace HamnSimulering
 
             foreach (int[] currentPosition in positions) //skippar första
             {
-
                 int[] previousPosition = mergedSpots.LastOrDefault(); //hämtar det föregående värdet
                 int[] nextValueToAdd;
 
@@ -251,8 +251,6 @@ namespace HamnSimulering
 
         public void TryPortSpots(List<Boat> boats, Port port, List<int[]> spots)
         {
-
-
             var positionsToCheck = spots.OrderBy(portSpotSize)
                                         .ToList();
 
@@ -387,7 +385,7 @@ namespace HamnSimulering
             {
                 foreach (Rowboat rowboat in rowboatsToCheck)
                 {
-                    int rowboatsOnSpot = port.Boats.Count(boat => anotherBoatOnSameSpot(boat, currentSpot));
+                    int rowboatsOnSpot = port.Boats.Count(boat => anotherRowboatOnSameSpot(boat, currentSpot));
                     bool currentSpotTaken = port.OccupiedSpots[currentSpot];
 
                     //för att en roddbåt ska kunna parkera måste det antingen vara exakt 1 där eller så ska platsen vara ledig
@@ -474,7 +472,7 @@ namespace HamnSimulering
                     //motorbåten ska endast ha 1 plats listad
                     boat.AssignedSpot = boat is Motorboat ? new int[1] { givenPortSpot[0] } : givenPortSpot;
                     port.AddBoat(boat);
-                    freeSpots.Remove(givenPortSpot);
+                    freeSpots.Remove(givenPortSpot); //tar bort platsen ur listan
                     continue;
                 }
             }
