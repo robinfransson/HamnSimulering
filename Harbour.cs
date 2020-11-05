@@ -36,9 +36,9 @@ namespace HamnSimulering
         /// <summary>
         /// här kollas hamnen om båten får plats på den plats som loopas
         /// </summary>
-        Func<Port, int, int, int, bool> boatCanPark = (port, start, max, boatSize) =>
+        Func<Port, int, int, int, bool> boatCanPark = (port, start, max, spotsToTake) =>
         {
-            int end = start + boatSize;
+            int end = start + spotsToTake;
 
             //om båtens storlek plus startvärdet är större än hamnens kapacitet
             //eller om båten är för stor för platsen som ska tilldelas
@@ -270,11 +270,11 @@ namespace HamnSimulering
                         break;
                     }
                     //array index 0, därför -1
-                    int boatSize = (int)boat.Size - 1;
+                    int spotsToTake = (int)boat.Size - 1;
 
                     //eftersom listan med nya båtar är sorterade efter storleksordning kan man anta att
                     //nästa båt inte heller får plats, därav break
-                    bool boatIsTooBig = !boatCanPark(port, currentSpot, max, boatSize);
+                    bool boatIsTooBig = !boatCanPark(port, currentSpot, max, spotsToTake);
 
                     if (boatIsTooBig)
                     {
@@ -321,7 +321,7 @@ namespace HamnSimulering
                         //nästa båt ska börja kolla efter en plats
                         //från den sista båtens andra position
                         //dvs om en båt fick plats {22,24} ska nästa börja kolla från 25
-                        int end = currentSpot + boatSize;
+                        int end = currentSpot + spotsToTake;
                         int newMinimum = end + 1;
                         boat.AssignedSpot = new int[2] { currentSpot, end };
                         position[0] = newMinimum;
