@@ -19,7 +19,7 @@ namespace HamnSimulering
 
         public static void DeleteSaves()
         {
-            string[] saveFiles = new string[6] { "left.txt", "right.txt", "waiting.txt", "stats.txt", "left_removed.txt", "right_removed.txt" };
+            string[] saveFiles = new string[2] { "stats.txt", "boats.txt"};
             foreach (string file in saveFiles)
             {
                 File.Delete(file);
@@ -87,16 +87,16 @@ namespace HamnSimulering
             Simulate.DaysPassed = daysPassed;
         }
 
-        static Boat AddBoatFromFile(string id, int weight, int topSpeed, int specialProp, int daysAtHarbour, int[] spotsTaken)
+        static Boat AddBoatFromFile(string id, int weight, int topSpeed, int specialProp, int daysAtHarbour, int[] spotsTaken, string port)
         {
             char boatModel = id[0];//första bokstaven i modell id
             return boatModel switch
             {
-                'R' => new Rowboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
-                'M' => new Motorboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
-                'S' => new Sailboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
-                'L' => new Cargoship(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
-                'K' => new Catamaran(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken),
+                'R' => new Rowboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken, port),
+                'M' => new Motorboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken, port),
+                'S' => new Sailboat(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken, port),
+                'L' => new Cargoship(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken, port),
+                'K' => new Catamaran(id, weight, topSpeed, specialProp, daysAtHarbour, spotsTaken, port),
                 _ => throw new NotImplementedException("Unsupported boattype! Model: " + id),
             };
         }
@@ -124,15 +124,18 @@ namespace HamnSimulering
                 int daysSpent = Int32.Parse(saveData[3]);
                 int specialProperty = Int32.Parse(saveData[4]);
                 int[] spots = null;
+                string port = saveData[6];
 
                 //om det finns platser reserverade
                 if (saveData[5] != "?")
                 {
                     string[] spotsTaken = saveData[5].Split("-");
-                    spots = spotsTaken.GetUpperBound(0) < 1 ? new int[1] { Int32.Parse(spotsTaken[0]) } : new int[2] { Int32.Parse(spotsTaken[0]), Int32.Parse(spotsTaken[1]) };
+                    spots = spotsTaken.GetUpperBound(0) < 1 ? new int[1] { Int32.Parse(spotsTaken[0]) } :
+                                                            new int[2] { Int32.Parse(spotsTaken[0]), Int32.Parse(spotsTaken[1]) };
                 }
                 
-                loadedFromFile.Add(AddBoatFromFile(ModelID, weight, topSpeedKnots, specialProperty, daysSpent, spots));
+
+                loadedFromFile.Add(AddBoatFromFile(ModelID, weight, topSpeedKnots, specialProperty, daysSpent, spots, port));
             }
             return loadedFromFile;
         }
@@ -145,9 +148,9 @@ namespace HamnSimulering
             //hur datat sparas
             string[] saveData = new string[saveDataLength+1];
             char dataSeparator = ';';
-            saveData[0] = "[ID;Maxfart(KNOP);Vikt;Dagar vid hamnen;Båtens special property;(plats vid hamnen, ? = not set)]";
+            saveData[0] = "[ID;Maxfart(KNOP);Vikt;Dagar vid hamnen;Båtens special property;(plats vid hamnen, ? = not set)];(vilken hamn, ?=not set)";
             int i = 1;
-            foreach (Boat boat in boats)
+            foreach (Boat boat in boats.OrderBy(b => b.IsInPort))
             {
                 string boatData = "";
                 int? numberOfSpots = boat.AssignedSpot?.Length;
@@ -191,6 +194,17 @@ namespace HamnSimulering
                         break;
                     default:
                         boatData += "?";
+                        break;
+                }
+                boatData += dataSeparator;
+
+                switch(boat.IsInPort)
+                {
+                    case null:
+                        boatData += "?";
+                        break;
+                    default:
+                        boatData += boat.IsInPort;
                         break;
                 }
                 saveData[i] = boatData;

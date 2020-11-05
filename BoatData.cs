@@ -31,9 +31,11 @@ namespace HamnSimulering
         /// <summary>
         /// Får ta in antalen som float för att kunna dividera dom direkt.
         /// </summary>
-        public static Func<float, float, float> CalculatePercentage =(numerator, denominator) => (float)Math.Round(100 - (numerator / (denominator + numerator)) * 100, 1);
+        public static Func<float, float, float> CalculatePercentage =
+            (numerator, denominator) => (float)Math.Round(100 - (numerator / (denominator + numerator)) * 100, 1);
 
-        public static Func<List<Boat>, float> AverageSpeed = (boats) => (float)Math.Round(boats.Sum(boat => boat.TopSpeedKMH) / boats.Count, 2);
+        public static Func<List<Boat>, float> AverageSpeed = 
+            (boats) => (float)Math.Round(boats.Sum(boat => boat.TopSpeedKMH) / boats.Count, 2);
 
 
         /// <summary>
@@ -232,7 +234,7 @@ namespace HamnSimulering
             }
             catch (Exception e)
             {
-                MessageBox.Show(e.Message + $"{boat.GetSpot} {boat.ModelID} {boat.GetBoatType()}");
+                MessageBox.Show(e.Message + $"\n{boat.GetSpot} {boat.ModelID} {boat.GetBoatType()}");
             }
         }
         /// <summary>

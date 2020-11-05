@@ -22,6 +22,7 @@ namespace HamnSimulering
         Func<Boat, bool> notAssigned = (boat) => boat.AssignedSpot == null;
         Func<Rowboat, bool> notAssignedRowboat = (rowboat) => rowboat.AssignedSpot == null;
         Func<Boat, bool> isSmallBoat = (boat) => boat.AssignedSpot.Length == 1;
+        Func<Boat, bool> isBigBoat = (boat) => boat.AssignedSpot.Length == 2;
         Func<int[], int> firstSpot = (spots) => spots[0];
         Func<Boat, float> boatSize = (boat) => boat.Size;
 
@@ -35,14 +36,14 @@ namespace HamnSimulering
         /// <summary>
         /// här kollas hamnen om båten får plats på den plats som loopas
         /// </summary>
-        Func<Port, int, int, int, bool> allSpotsFree = (port, start, max, boatSize) =>
+        Func<Port, int, int, int, bool> boatCanPark = (port, start, max, boatSize) =>
         {
             int end = start + boatSize;
 
+            //om båtens storlek plus startvärdet är större än hamnens kapacitet
+            //eller om båten är för stor för platsen som ska tilldelas
             if (end > port.OccupiedSpots.GetUpperBound(0) || end > max)
             {
-                //om båtens storlek plus startvärdet är större än hamnens kapacitet
-                //eller om båten är för stor för platsen som ska tilldelas
                 return false;
             }
 
@@ -170,12 +171,12 @@ namespace HamnSimulering
 
         private List<int[]> FetchPositions(Port port)
         {
-            List<int[]> positions = port.RemovedBoats.Where(boat => !isSmallBoat(boat))
+            List<int[]> positions = port.RemovedBoats.Where(isBigBoat)
                                                      .Select(value => value.AssignedSpot)
                                                      .ToList();
 
             List<int[]> smallBoatPositions = port.RemovedBoats
-                                            .Where(boat => isSmallBoat(boat))
+                                            .Where(isSmallBoat)
                                             .Select(boat => boat.AssignedSpot)
                                             .ToList();
 
@@ -188,9 +189,9 @@ namespace HamnSimulering
 
             //tar bort om det finns mer än 1 av samma 
             positions = positions.GroupBy(position => position[0])
-                                 .Select(group => group.FirstOrDefault()) //väljer det första värdet i varje grupp, (sorterar ut dubletter (roddbåtar dvs))
-                                 .OrderBy(firstSpot)// sorterar dom på 1a platsens värde så de platser som ligger nära varandra hamnar brevid varandra
-                                 .ToList();
+            .Select(group => group.FirstOrDefault()) //väljer det första värdet i varje grupp, 
+            .OrderBy(firstSpot)// sorterar dom på 1a platsens värde så de platser som ligger nära varandra hamnar brevid varandra
+            .ToList();
 
             return MergePositions(positions, port); 
         }
@@ -207,11 +208,12 @@ namespace HamnSimulering
             mergedSpots.Add(positions.FirstOrDefault());
 
 
-            //skippar det första värdet i listan för det redan är inlagt i den andra, så den inte jämför samma värden med varandra
+            //skippar det första värdet i listan för det redan är inlagt i den andra,
+            //så den inte jämför samma värden med varandra
             positions = positions.Skip(1)
                                  .ToList();
 
-            foreach (int[] currentPosition in positions) //skippar första
+            foreach (int[] currentPosition in positions)
             {
                 int[] previousPosition = mergedSpots.LastOrDefault(); //hämtar det föregående värdet
                 int[] nextValueToAdd;
@@ -272,7 +274,7 @@ namespace HamnSimulering
 
                     //eftersom listan med nya båtar är sorterade efter storleksordning kan man anta att
                     //nästa båt inte heller får plats, därav break
-                    bool boatIsTooBig = !allSpotsFree(port, currentSpot, max, boatSize) || currentSpot + boatSize > max;
+                    bool boatIsTooBig = !boatCanPark(port, currentSpot, max, boatSize);
 
                     if (boatIsTooBig)
                     {
@@ -288,7 +290,8 @@ namespace HamnSimulering
                     if (rowboatCanPark)
                     {
                         //hur många roddbåtar som det är kvar och hur många det är på platsen, är det 
-                        //redan en roddbåt på platsen så kommer inte det få plats en till, då plussas position[0] på med 1, så får nästa båt försöka klämma sig in
+                        //redan en roddbåt på platsen så kommer inte det få plats en till, då plussas position[0] på med 1
+                        //så får nästa båt försöka klämma sig in
                         //från nästa plats och är det här den sista som inte har en hamnplats ska samma sak ske
                         position[0] += rowboatsOnSpot == 1 || rowboatsLeftToAssign == 1 ? 1 : 0;
                         boat.AssignedSpot = new int[1] { currentSpot };
@@ -313,15 +316,13 @@ namespace HamnSimulering
                         continue;
                     }
 
-
-                    //annars är det en båt som ska ta mer än 1 plats
                     else
                     {
-                        //och nästa båt ska börja kolla efter en plats
-                        //från den sista båtens andra position + 1
+                        //nästa båt ska börja kolla efter en plats
+                        //från den sista båtens andra position
                         //dvs om en båt fick plats {22,24} ska nästa börja kolla från 25
                         int end = currentSpot + boatSize;
-                        int newMinimum = currentSpot + boatSize + 1;
+                        int newMinimum = end + 1;
                         boat.AssignedSpot = new int[2] { currentSpot, end };
                         position[0] = newMinimum;
                         port.AddBoat(boat);
@@ -336,12 +337,13 @@ namespace HamnSimulering
         public void PlaceRowboatNextToAnother(List<Boat> boats, Port port)
         {
             List<Rowboat> rowboatsToCheck = boats.Where(notAssigned).OfType<Rowboat>().ToList();
-            List<Rowboat> dockedRowboatsWithSpace = port.Boats.Where(boatIsRowboat)
-                                                    .OfType<Rowboat>()
-                                                    .GroupBy(boat => boat.AssignedSpot[0])
-                                                    .Where(group => group.Count() < 2)//där det är mindre än 2 på samma plats kan nästa få hamna
-                                                    .Select(boatGroup => boatGroup.FirstOrDefault()) //väljer den första i varje grupp
-                                                    .ToList();
+            List<Rowboat> dockedRowboatsWithSpace = 
+                port.Boats.Where(boatIsRowboat)
+                .OfType<Rowboat>()
+                .GroupBy(boat => boat.AssignedSpot[0])
+                .Where(group => group.Count() < 2)//där det är mindre än 2 på samma plats kan nästa få hamna
+                .Select(boatGroup => boatGroup.FirstOrDefault()) //väljer den första i varje grupp
+                .ToList();
 
 
             //så länge det finns roddbåtar att placera ut och roddbåtar som har plats för en till
@@ -411,13 +413,15 @@ namespace HamnSimulering
 
         static int[] PortSpotArray(string spots)
         {
-
-            string[] currentSpots = spots.Split(',').SkipLast(1).ToArray(); //skippar sista index för att jag vet att det kommer vara en tom stäng
+            //skippar sista index för att jag vet att det kommer vara en tom stäng iom
+            //att det är ett kommatecken på slutet av varje siffra
+            string[] currentSpots = spots.Split(',').SkipLast(1).ToArray(); 
 
             int lastIndex = currentSpots.GetUpperBound(0);
             int start = int.Parse(currentSpots[0]);
             int end = int.Parse(currentSpots[lastIndex]);
 
+            //en array med 15,16,17 kommer bli 15,17
             int[] portSpot = new int[2] { start, end }; //returnerar arrayen med endast start och slut positionen
             return portSpot;
         }

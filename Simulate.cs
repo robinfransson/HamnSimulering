@@ -31,17 +31,18 @@ namespace HamnSimulering
             Func<Boat, bool> notAssigned = (boat) => boat.AssignedSpot == null;
 
             //visar en ruta med vilka båtar som inte fick plats
-            Action<List<Boat>> showWho = (boats) => {
+            static void ShowWho(List<Boat> boats)
+            {
                 string info = "";
-                    foreach (Boat boat in boats)
-                    {
-                        info += $"{boat.GetBoatType()} {boat.ModelID} (size {boat.Size} spots) did not fit!\n";
-                    }
-                    MessageBox.Show(info);
-                
-            };
+                foreach (Boat boat in boats)
+                {
+                    info += $"{boat.GetBoatType()} {boat.ModelID} (size {boat.Size} spots) did not fit!\n";
+                }
+                MessageBox.Show(info);
 
-            
+            }
+
+
 
 
 
@@ -51,14 +52,12 @@ namespace HamnSimulering
             //hämtar positionerna från de båtarna som lämnat hamnen nyligen
             harbour.TryReusingPortSpots(waitingBoats);
 
-            //försöker dela ut de platser GetPositions() hämtade
-            //harbour.TestSpotsFromRemovedBoats(waitingBoats);
 
             //lägger till roddbåtar brevid andra roddbåtar
             harbour.PlaceRowboatsOnOccupiedSpots(waitingBoats);
 
             //lägger till roddbåtar på nya platser
-            harbour.AddRowboatsOnEmptySpot(waitingBoats);
+            //harbour.AddRowboatsOnEmptySpot(waitingBoats);
 
             //sedan de andra båtarna
             harbour.GiveBoatsUnassignedPortSpots(waitingBoats);
@@ -82,7 +81,7 @@ namespace HamnSimulering
             //visa vilka båtar som inte fick plats om inte automatic är true
             if (!isAuto && rejectedBoats > 0)
             {
-                showWho(waitingBoats.Where(notAssigned).ToList());
+                ShowWho(waitingBoats.Where(notAssigned).ToList());
             }
 
             //rensar väntande båtar och lägger till nya

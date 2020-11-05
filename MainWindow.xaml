@@ -18,14 +18,14 @@
         <Label x:Name="waitingBoatsLabel" Content="Väntande båtar: 0" Height="26" Canvas.Left="77" Canvas.Top="229" Width="116"/>
         <Label x:Name="rejectedBoatsLabel" Content="Avvisade båtar: 0" Height="30" Canvas.Left="21" Canvas.Top="328" Width="245"/>
         <Label x:Name="numberOfDaysLabel" Content="Passerade dagar: 0" Height="25" Canvas.Left="21" Canvas.Top="305" Width="245"/>
-        <Button x:Name="saveButton" Content="Save" Height="42" Canvas.Left="30" Canvas.Top="462" Width="114" Click="SaveButton_Click"/>
+        <Button x:Name="saveButton" Content="Spara" Height="42" Canvas.Left="30" Canvas.Top="462" Width="114" Click="SaveButton_Click"/>
         <Label x:Name="leftPortSpotsRemainingLabel" Content="Lediga platser: " Height="29" Canvas.Left="568" Canvas.Top="561" Width="132"/>
         <Label x:Name="rightPortSpotsRemainingLabel" Content="Lediga platser: " Height="29" Canvas.Left="1048" Canvas.Top="561" Width="132"/>
         <Slider x:Name="newBoatsSlider" Height="23" Canvas.Left="34" Canvas.Top="280" Width="202" Value="5" TickPlacement="None" ValueChanged="BoatSlider_ValueChanged" SmallChange="1" Maximum="100"/>
         <Label x:Name="newBoatsLabel" Content="Nya båtar per dag: 5" Height="30" Canvas.Left="63" Canvas.Top="250" Width="146"/>
         <TextBox x:Name="autoSpeedTextBox" Height="18" Canvas.Left="182" Canvas.Top="493" Text="5" TextWrapping="Wrap" Width="84" KeyDown="AutoSpeed_KeyDown"/>
-        <Label Content="Auto Speed: (s.mmm)&#xD;&#xA;)&#xA;" Height="26" Canvas.Left="162" Canvas.Top="462" Width="128"/>
-        <Button x:Name="clearSave" Content="Clear save" Height="42" Canvas.Left="30" Canvas.Top="520" Width="114" Click="ClearSave_Clicked" />
+        <Label Content="Auto timer: (s.mmm)&#xD;&#xA;)&#xA;" Height="26" Canvas.Left="162" Canvas.Top="462" Width="128"/>
+        <Button x:Name="clearSave" Content="Återställ" Height="42" Canvas.Left="30" Canvas.Top="520" Width="114" Click="ClearSave_Clicked" />
         <Label x:Name="col2" Content="Col2" Height="34" Canvas.Left="393" Canvas.Top="590" Width="69" Visibility="Hidden"/>
         <Label x:Name="col3" Content="Col3" Height="34" Canvas.Left="474" Canvas.Top="590" Width="70" Visibility="Hidden"/>
         <Label x:Name="col4" Content="Col4" Height="34" Canvas.Left="565" Canvas.Top="590" Width="69" Visibility="Hidden"/>

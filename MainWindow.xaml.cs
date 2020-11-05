@@ -27,7 +27,11 @@ namespace HamnSimulering
         DispatcherTimer automaticTimer;
         DispatcherTimer saveTimer;
 
-
+        //public object labelContent
+        //{
+        //    get { return acceptedBoatsLabel.Content; }
+        //    set { acceptedBoatsLabel.Content = value; }
+        //}
 
 
 
@@ -154,18 +158,29 @@ namespace HamnSimulering
 
         void LoadSaveFiles()
         {
+            Func<List<Boat>, string, List<Boat>> loadBoats = (boats, port) => boats.Where(boat => boat.IsInPort == port).ToList();
             try
             {
-                leftPort.Boats = SaveFileManager.Load("left.txt");
-                leftPort.RemovedBoats = SaveFileManager.Load("left_removed.txt");
+                List<Boat> boatsFromFile = SaveFileManager.Load("boats.txt");
+                leftPort.Boats = loadBoats(boatsFromFile, leftPort.PortName);
+                leftPort.RemovedBoats = loadBoats(boatsFromFile, leftPort.PortName + "-removed");
 
 
-                rightPort.Boats = SaveFileManager.Load("right.txt");
-                rightPort.RemovedBoats = SaveFileManager.Load("right_removed.txt");
+                rightPort.Boats = loadBoats(boatsFromFile, rightPort.PortName);
+                rightPort.RemovedBoats = loadBoats(boatsFromFile, rightPort.PortName + "-removed");
+
+                Simulate.waitingBoats = boatsFromFile.Where(boat => boat.IsInPort == "?").ToList();
+
+                //Simulate.waitingBoats = SaveFileManager.Load("waiting.txt");
+                //leftPort.Boats = SaveFileManager.Load("left.txt");
+                //leftPort.RemovedBoats = SaveFileManager.Load("left_removed.txt");
 
 
-                Simulate.waitingBoats = SaveFileManager.Load("waiting.txt");
-                
+                //rightPort.Boats = SaveFileManager.Load("right.txt");
+                //rightPort.RemovedBoats = SaveFileManager.Load("right_removed.txt");
+
+
+
                 waitingBoats = Simulate.waitingBoats;
 
 
@@ -273,14 +288,24 @@ namespace HamnSimulering
 
         private void Save()
         {
-            SaveFileManager.Save(leftPort.Boats, "left.txt");
-            SaveFileManager.Save(leftPort.RemovedBoats, "left_removed.txt");
-            SaveFileManager.Save(rightPort.Boats, "right.txt");
-            SaveFileManager.Save(rightPort.RemovedBoats, "right_removed.txt");
-            SaveFileManager.Save(waitingBoats, "waiting.txt");
+            List<Boat> boatsToSave = new List<Boat>();
+            boatsToSave.AddRange(leftPort.Boats);
+            boatsToSave.AddRange(leftPort.RemovedBoats);
+            boatsToSave.AddRange(rightPort.Boats);
+            boatsToSave.AddRange(rightPort.RemovedBoats);
+            boatsToSave.AddRange(waitingBoats);
+            SaveFileManager.Save(boatsToSave, "boats.txt");
 
 
             SaveFileManager.SaveStatistics("stats.txt");
+
+            //SaveFileManager.Save(leftPort.Boats, "left.txt");
+            //SaveFileManager.Save(leftPort.RemovedBoats, "left_removed.txt");
+            //SaveFileManager.Save(rightPort.Boats, "right.txt");
+            //SaveFileManager.Save(rightPort.RemovedBoats, "right_removed.txt");
+            //SaveFileManager.Save(waitingBoats, "waiting.txt");
+
+
 
             //if(sender is DispatcherTimer)
             //{
@@ -342,7 +367,7 @@ namespace HamnSimulering
                 harbour.ReplacePort(leftPort);
                 harbour.ReplacePort(rightPort);
 
-                Simulate.ClearWaiting();
+                waitingBoats.Clear();
                 Simulate.AddToWaiting(5);
                 UpdateWaitingBoats();
 
@@ -360,6 +385,7 @@ namespace HamnSimulering
                 Simulate.BoatsRejected = 0;
                 Simulate.BoatsAccepted = 0;
 
+                UpdateLabels();
             }
         }
 

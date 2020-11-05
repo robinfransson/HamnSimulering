@@ -11,8 +11,6 @@ namespace HamnSimulering
     {
         public List<Boat> Boats = new List<Boat>();
 
-        //använder namn till kajen för olika saker, bl.a är det tabellnamnet i datasetet, för att se vilken kaj båten
-        //tillhör, men den informationen behöver jag endast när de gamla platserna ska delas ut
         public string PortName { get; set; }
         public bool[] OccupiedSpots { get; set; }
 
@@ -30,6 +28,8 @@ namespace HamnSimulering
 
 
 
+        //använder namn till kajen för olika saker, bl.a är det tabellnamnet i datasetet, för att se vilken kaj båten
+        //tillhör, men den informationen behöver jag endast när de gamla platserna ska delas ut
         public Port(string name)
         {
             PortName = name;
@@ -64,7 +64,8 @@ namespace HamnSimulering
             int lastSpot = boat.AssignedSpot.Length > 1 ? boat.AssignedSpot[1] : boat.AssignedSpot[0]; //är det en båt med bara 1 plats tilldelad blir sista platsen att kolla samma som första
 
 
-            File.AppendAllText("log.log", $"Updated spots {firstSpot}-{lastSpot} from boat {boat.ModelID} in {this.PortName} ({(spotTaken == true ? "(added)" : "(removed)")})\n");
+            File.AppendAllText("log.log", $"Updated spots {firstSpot}-{lastSpot} from boat {boat.ModelID} in " +
+                                          $"{this.PortName} ({(spotTaken == true ? "(added)" : "(removed)")})\n");
 
             if (boat is Rowboat && spotTaken == false)
             {
@@ -93,6 +94,7 @@ namespace HamnSimulering
         /// <param name="boat"></param>
         public void Remove(Boat boat)
         {
+            boat.IsInPort = $"{this.PortName}-removed";
             Boats.Remove(boat);
             UpdatePortSpot(boat, false);
             BoatData.RemoveBoat(boat, this.PortName);
@@ -105,6 +107,7 @@ namespace HamnSimulering
 
         public void AddBoat(Boat boat)
         {
+            boat.IsInPort = this.PortName;
             Boats.Add(boat);
             UpdatePortSpot(boat, true);
             BoatData.UpdatePort(this, boat);

@@ -27,7 +27,7 @@ namespace HamnSimulering
         public float Size { get; set; }
         public string ModelID { get; set; }
         public int DaysSpentAtHarbour { get; set; }
-
+        public string IsInPort { get; set; }
         public float TopSpeedKMH { get; set; }
         public string Speed
         {
@@ -55,14 +55,15 @@ namespace HamnSimulering
 
 
 
-
-        public Boat(string id, int weight, int topSpeedKnots, int daysSpent = 0, int[] spots = null) //dagar och plats sätts vid laddning från fil
+        //dagar plats och kaj sätts vid laddning från fil
+        public Boat(string id, int weight, int topSpeedKnots, int daysSpent = 0, int[] spots = null, string port=null) 
         {
             AssignedSpot = spots;
             DaysSpentAtHarbour = daysSpent;
             ModelID = id;
             Weight = weight;
             TopSpeedKnots = topSpeedKnots;
+            IsInPort = port;
             TopSpeedKMH = (float)Math.Round(TopSpeedKnots * 1.852, 1);
         }
     }
