@@ -25,6 +25,7 @@ namespace HamnSimulering
         Func<Boat, bool> isBigBoat = (boat) => boat.AssignedSpot.Length == 2;
         Func<int[], int> firstSpot = (spots) => spots[0];
         Func<Boat, float> boatSize = (boat) => boat.Size;
+        Func<Boat, float> actualBoatSize = (boat) => boat.Size-1;
 
 
 
@@ -68,18 +69,38 @@ namespace HamnSimulering
                 if (port.RemovedBoats.Any())
                 {
                     List<int[]> spotsToTry = FetchPositions(port);
-                    TryPortSpots(boats, port, spotsToTry);
+                    if (spotsToTry.FirstOrDefault() != null)
+                    {
+                        GiveBoatSemiEfficientParking(boats, port, spotsToTry);
+                    }
+                }
+            }
+        }
+        public void TrySuperMerge(List<Boat> boats)
+        {
+            foreach (Port port in Ports)
+            {
+                if (port.RemovedBoats.Any())
+                {
+                    List<int[]> spotsToTry = MergeOldAndNewPositions(port);
+                    //List<int[]> spotsToTry = FetchPositions(port);
+                    if (spotsToTry.FirstOrDefault() != null)
+                    {
+                        GiveBoatSemiEfficientParking(boats, port, spotsToTry);
+                    }
                 }
             }
         }
 
         public void GiveBoatsUnassignedPortSpots(List<Boat> boats)
         {
-            if (boats.Any(notAssigned))
-            {
+            
                 foreach (Port port in Ports)
                 {
-                    GiveBoatSemiEfficientParking(boats, port);
+                if (boats.Any(notAssigned))
+                {
+                    List<int[]> freeSpots = FreePortSpots(port);
+                    GiveBoatSemiEfficientParking(boats, port, freeSpots);
                 }
             }
 
@@ -184,7 +205,15 @@ namespace HamnSimulering
             //koden är uppbyggd så att alla int[] antas ha 2 index
             foreach (int[] position in smallBoatPositions)
             {
-                positions.Add(new int[2] { position[0], position[0] });
+                bool rowboatStillOnLocation = port.Boats.Count(boat => anotherRowboatOnSameSpot(boat, position[0])) > 0;
+                if (rowboatStillOnLocation || positions.Count(pos => pos[0] == position[0]) > 0)
+                {
+                    continue;
+                }
+                else
+                {
+                    positions.Add(new int[2] { position[0], position[0] });
+                }
             }
 
             //tar bort om det finns mer än 1 av samma 
@@ -198,6 +227,53 @@ namespace HamnSimulering
 
 
 
+
+        private List<int[]> MergeOldAndNewPositions(Port port)
+        {
+            //hämtar de båtarna som lämnats positioner
+            List<int[]> oldPositions = FetchPositions(port);
+            foreach(int[] position in oldPositions)
+            {
+                if(position == null)
+                {
+                    break;
+                }
+                int startFirst = position[0];
+                int startLast = position[1];
+                bool foundEnd = false;
+                bool foundStart = false;
+                while(!foundStart && startFirst > port.OccupiedSpots.GetLowerBound(0))
+                {
+                    startFirst--;
+                    bool currentSpotTaken = port.OccupiedSpots[startFirst]; 
+                    //om platsen är tagen redan eller om det finns en annan i listan med den platsen som startplats
+                    //nr 
+                    if (currentSpotTaken || oldPositions.Count(pos => pos[0] == startLast) > 0)
+                    {
+                        foundStart = true;
+                    }
+                    else
+                    {
+                        position[0]--;
+                    }
+                }
+                while(!foundEnd && startLast < port.OccupiedSpots.GetUpperBound(0))
+                {
+                    startLast++;
+                    bool currentSpotTaken = port.OccupiedSpots[startLast];
+                    //om platsen är tagen redan eller om det finns en annan i listan med den platsen som sista plats
+                    if (currentSpotTaken || oldPositions.Count(pos => pos[0] == startLast) > 0)
+                    {
+                        foundEnd = true;
+                    }
+                    else
+                    {
+                        position[1]++;
+                    }
+                }
+            }
+            return oldPositions;
+        }
 
 
         private List<int[]> MergePositions(List<int[]> positions, Port port)
@@ -254,6 +330,7 @@ namespace HamnSimulering
         public void TryPortSpots(List<Boat> boats, Port port, List<int[]> spots)
         {
             var positionsToCheck = spots.OrderBy(portSpotSize)
+                                        .ThenBy(firstSpot)
                                         .ToList();
 
             foreach (int[] position in positionsToCheck)
@@ -454,11 +531,12 @@ namespace HamnSimulering
 
         }
 
-        public void GiveBoatSemiEfficientParking(List<Boat> boats, Port port)
+        public void GiveBoatSemiEfficientParking(List<Boat> boats, Port port, List<int[]> freeSpots)
         {
-            List<int[]> freeSpots = FreePortSpots(port);
             //List<int[]> freeSpots = FreePortSpots2(port);
-            List<Boat> boatsToCheck = boats.Where(notAssigned).OrderBy(boatSize).ToList();
+            List<Boat> boatsToCheck = boats.Where(notAssigned)
+                                           .OrderBy(boatSize)
+                                           .ToList();
             foreach (Boat boat in boatsToCheck)
             {
                 //t.ex plats 1 till 3 för en katamaran 3-1 = 2 katamaranens storlek = 3 därför -1

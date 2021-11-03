@@ -19,6 +19,7 @@ namespace HamnSimulering
         public static bool automatic = false;
         readonly int saveInterval = 30;
         int timeSinceSave = 0;
+        bool superMergeBoats = false;
 
         Harbour harbour;
         Port leftPort;
@@ -271,11 +272,11 @@ namespace HamnSimulering
             if(sender is DispatcherTimer)
             {
                 //om det är autotimern som kallar på funktionen sätts isAuto till true
-                Simulate.OneDay(true);
+                Simulate.OneDay(true, superMergeBoats);
             }
             else
             {
-                Simulate.OneDay(false);
+                Simulate.OneDay(false, superMergeBoats);
             }
             UpdateLabels();
         }
@@ -474,6 +475,10 @@ namespace HamnSimulering
             automaticTimer.Interval = new TimeSpan(0, 0, 0, seconds, milliseconds);
         }
 
+        private void SuperMerge_StateChanged(object sender, RoutedEventArgs e)
+        {
+            superMergeBoats = (bool)this.superMerge.IsChecked;
+        }
     }
 }
 

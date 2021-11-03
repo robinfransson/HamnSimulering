@@ -35,5 +35,6 @@
         <Label x:Name="col7" Content="Col7" Height="34" Canvas.Left="792" Canvas.Top="589" Width="69" Visibility="Hidden"/>
         <Label x:Name="acceptedBoatsLabel" Content="Antagna båtar : 0" Height="30" Canvas.Left="21" Canvas.Top="352" Width="259"/>
         <Label x:Name="timeSinceSaveLabel" Content="" Height="31" Canvas.Left="30" Canvas.Top="576" Width="179"/>
+        <CheckBox x:Name="superMerge" Content="Super merge?" Canvas.Left="186" Canvas.Top="257" Width="104" Checked="SuperMerge_StateChanged" Unchecked="SuperMerge_StateChanged"/>
     </Canvas>
 </Window>

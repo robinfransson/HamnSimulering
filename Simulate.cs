@@ -24,7 +24,7 @@ namespace HamnSimulering
 
 
 
-        public static void OneDay(bool isAuto)
+        public static void OneDay(bool isAuto, bool superMerge=false)
         {
 
             //vilka båtar som inte har fått en plats tilldelad
@@ -43,28 +43,34 @@ namespace HamnSimulering
             }
 
 
-
-
-
             //lägger till en dag på varje båt om det finns några vid kajen
             harbour.AddOneDay();
 
-            //hämtar positionerna från de båtarna som lämnat hamnen nyligen
-            harbour.TryReusingPortSpots(waitingBoats);
+            if (superMerge)
+            {
+                //lägger till roddbåtar brevid andra roddbåtar
+                harbour.PlaceRowboatsOnOccupiedSpots(waitingBoats);
+
+                //slår ihop de båtarnas platser och de platser som redan var lediga till "super positioner"
+                //
+                harbour.TrySuperMerge(waitingBoats);
+
+                //sedan de andra båtarna
+                harbour.GiveBoatsUnassignedPortSpots(waitingBoats);
+            }
+            else
+            {
 
 
-            //lägger till roddbåtar brevid andra roddbåtar
-            harbour.PlaceRowboatsOnOccupiedSpots(waitingBoats);
+                //lägger till roddbåtar brevid andra roddbåtar
+                harbour.PlaceRowboatsOnOccupiedSpots(waitingBoats);
 
-            //lägger till roddbåtar på nya platser
-            //harbour.AddRowboatsOnEmptySpot(waitingBoats);
+                //hämtar positionerna från de båtarna som lämnat hamnen nyligen
+                harbour.TryReusingPortSpots(waitingBoats);
 
-            //sedan de andra båtarna
-            harbour.GiveBoatsUnassignedPortSpots(waitingBoats);
-            
-
-            ////rensar listorna med positioner
-            //harbour.ClearPositions();
+                //sedan de andra båtarna
+                harbour.GiveBoatsUnassignedPortSpots(waitingBoats);
+            }
 
             //skriver ut lediga platser
             harbour.ListFreeSpots();
